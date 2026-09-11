@@ -18,6 +18,11 @@ dev = [
     "pytest",
 ]
 
+build = [
+    "pyinstaller>=6.10,<7",
+    "Pillow>=10,<12",
+]
+
 [project.scripts]
 fateplanner = "fateplanner.main:main"
 
