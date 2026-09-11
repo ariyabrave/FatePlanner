@@ -7,6 +7,9 @@ from pathlib import Path
 from fateplanner.database.connection import (
     get_connection,
 )
+from fateplanner.utils.date_utils import (
+    get_jalali_month_dates,
+)
 
 
 VALID_SCHEDULE_TYPES = {
@@ -478,6 +481,53 @@ def set_habit_completed(
         connection.commit()
 
 
+def get_habit_logs_between(
+    habit_id: int,
+    start_date: str,
+    end_date: str,
+    database_path: str | Path | None = None,
+):
+    start = _parse_date(
+        start_date
+    )
+
+    end = _parse_date(
+        end_date
+    )
+
+    if end < start:
+        raise ValueError(
+            "End date cannot be "
+            "before start date."
+        )
+
+    with get_connection(
+        database_path
+    ) as connection:
+
+        return connection.execute(
+            """
+            SELECT
+                id,
+                habit_id,
+                log_date,
+                completed,
+                created_at
+            FROM habit_logs
+            WHERE
+                habit_id = ?
+                AND log_date >= ?
+                AND log_date <= ?
+            ORDER BY log_date ASC
+            """,
+            (
+                habit_id,
+                start.isoformat(),
+                end.isoformat(),
+            ),
+        ).fetchall()
+
+
 def get_habit_progress_for_date(
     target_date: str,
     database_path: str | Path | None = None,
@@ -622,6 +672,7 @@ def get_habit_stats(
             in completed_dates
         ):
             current_streak += 1
+
         else:
             break
 
@@ -665,4 +716,105 @@ def get_habit_stats(
         "percentage": (
             percentage
         ),
+    }
+
+
+def get_habit_month_stats(
+    habit_id: int,
+    jalali_year: int,
+    jalali_month: int,
+    through_date: str | None = None,
+    database_path: str | Path | None = None,
+) -> dict:
+    habit = get_habit(
+        habit_id,
+        database_path=database_path,
+    )
+
+    if habit is None:
+        raise ValueError(
+            "Habit does not exist."
+        )
+
+    month_dates = (
+        get_jalali_month_dates(
+            jalali_year,
+            jalali_month,
+        )
+    )
+
+    if through_date is None:
+        target = date.today()
+    else:
+        target = _parse_date(
+            through_date
+        )
+
+    relevant_dates = [
+        month_date
+        for month_date in month_dates
+        if (
+            month_date <= target
+            and is_habit_scheduled_on_date(
+                habit,
+                month_date,
+            )
+        )
+    ]
+
+    if not relevant_dates:
+        return {
+            "scheduled": 0,
+            "completed": 0,
+            "missed": 0,
+            "percentage": 0,
+        }
+
+    logs = get_habit_logs_between(
+        habit_id,
+        month_dates[0].isoformat(),
+        month_dates[-1].isoformat(),
+        database_path=database_path,
+    )
+
+    completed_dates = {
+        row["log_date"]
+        for row in logs
+        if row["completed"]
+    }
+
+    scheduled = len(
+        relevant_dates
+    )
+
+    completed = sum(
+        1
+        for relevant_date
+        in relevant_dates
+        if (
+            relevant_date.isoformat()
+            in completed_dates
+        )
+    )
+
+    missed = (
+        scheduled
+        - completed
+    )
+
+    percentage = (
+        round(
+            completed
+            / scheduled
+            * 100
+        )
+        if scheduled
+        else 0
+    )
+
+    return {
+        "scheduled": scheduled,
+        "completed": completed,
+        "missed": missed,
+        "percentage": percentage,
     }

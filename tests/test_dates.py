@@ -137,3 +137,42 @@ def test_persian_week_starts_saturday():
         week[-1].weekday()
         == 4
     )
+
+
+def test_farvardin_1405_has_31_dates():
+    from fateplanner.utils.date_utils import (
+        get_jalali_month_dates,
+    )
+
+    dates = get_jalali_month_dates(
+        1405,
+        1,
+    )
+
+    assert len(dates) == 31
+
+    assert (
+        dates[0]
+        == date(
+            2026,
+            3,
+            21,
+        )
+    )
+
+
+def test_saturday_is_first_calendar_column():
+    from fateplanner.utils.date_utils import (
+        get_persian_weekday_column,
+    )
+
+    assert (
+        get_persian_weekday_column(
+            date(
+                2026,
+                3,
+                21,
+            )
+        )
+        == 0
+    )    

@@ -6,6 +6,7 @@ from fateplanner.services.habit_service import (
     create_habit,
     delete_habit,
     get_habit,
+    get_habit_month_stats,
     get_habit_progress_for_date,
     get_habit_stats,
     get_habits_for_date,
@@ -49,12 +50,7 @@ def test_create_daily_habit(
     )
 
     assert habit is not None
-
-    assert (
-        habit["title"]
-        == "Read"
-    )
-
+    assert habit["title"] == "Read"
     assert (
         habit["schedule_type"]
         == "daily"
@@ -95,15 +91,9 @@ def test_selected_weekday_schedule(
         database_path=database,
     )
 
-    assert len(
-        saturday
-    ) == 1
-
+    assert len(saturday) == 1
     assert sunday == []
-
-    assert len(
-        monday
-    ) == 1
+    assert len(monday) == 1
 
 
 def test_complete_habit(
@@ -351,6 +341,167 @@ def test_daily_habit_progress(
     assert total == 2
     assert completed == 1
     assert percentage == 50
+
+
+def test_month_stats_daily_habit(
+    tmp_path,
+):
+    database = make_database(
+        tmp_path
+    )
+
+    habit_id = create_habit(
+        title="Read",
+        start_date="2026-03-21",
+        database_path=database,
+    )
+
+    for log_date in [
+        "2026-03-21",
+        "2026-03-22",
+        "2026-03-24",
+    ]:
+        set_habit_completed(
+            habit_id,
+            log_date,
+            True,
+            database_path=database,
+        )
+
+    stats = get_habit_month_stats(
+        habit_id,
+        1405,
+        1,
+        through_date="2026-03-25",
+        database_path=database,
+    )
+
+    assert (
+        stats["scheduled"]
+        == 5
+    )
+
+    assert (
+        stats["completed"]
+        == 3
+    )
+
+    assert (
+        stats["missed"]
+        == 2
+    )
+
+    assert (
+        stats["percentage"]
+        == 60
+    )
+
+
+def test_month_stats_ignore_future_days(
+    tmp_path,
+):
+    database = make_database(
+        tmp_path
+    )
+
+    habit_id = create_habit(
+        title="Read",
+        start_date="2026-03-21",
+        database_path=database,
+    )
+
+    set_habit_completed(
+        habit_id,
+        "2026-03-21",
+        True,
+        database_path=database,
+    )
+
+    stats = get_habit_month_stats(
+        habit_id,
+        1405,
+        1,
+        through_date="2026-03-21",
+        database_path=database,
+    )
+
+    assert (
+        stats["scheduled"]
+        == 1
+    )
+
+    assert (
+        stats["completed"]
+        == 1
+    )
+
+    assert (
+        stats["missed"]
+        == 0
+    )
+
+    assert (
+        stats["percentage"]
+        == 100
+    )
+
+
+def test_month_stats_selected_weekdays(
+    tmp_path,
+):
+    database = make_database(
+        tmp_path
+    )
+
+    habit_id = create_habit(
+        title="Saturday habit",
+        schedule_type="weekdays",
+        weekdays=[5],
+        start_date="2026-03-21",
+        database_path=database,
+    )
+
+    set_habit_completed(
+        habit_id,
+        "2026-03-21",
+        True,
+        database_path=database,
+    )
+
+    set_habit_completed(
+        habit_id,
+        "2026-04-04",
+        True,
+        database_path=database,
+    )
+
+    stats = get_habit_month_stats(
+        habit_id,
+        1405,
+        1,
+        through_date="2026-04-10",
+        database_path=database,
+    )
+
+    assert (
+        stats["scheduled"]
+        == 3
+    )
+
+    assert (
+        stats["completed"]
+        == 2
+    )
+
+    assert (
+        stats["missed"]
+        == 1
+    )
+
+    assert (
+        stats["percentage"]
+        == 67
+    )
 
 
 def test_update_habit(

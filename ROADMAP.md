@@ -85,7 +85,7 @@
 - [x] Preserve completed history
 - [x] Final recurrence tests
 
-## ⏳ Milestone 5 — Habits + Streaks
+## ✅ Milestone 5 — Habits + Streaks
 
 ### ✅ 5A — Habit Foundation + Streaks
 
@@ -104,16 +104,21 @@
 - [x] Persistent history
 - [x] Tests
 
-### ⏳ 5B — Habit History + Heatmap
+### ✅ 5B — Habit History + Heatmap
 
-- [ ] View previous days
-- [ ] Manually correct past completions
-- [ ] Jalali month navigation
-- [ ] Monthly habit heatmap
-- [ ] Monthly completion percentage
-- [ ] Habit history view
-- [ ] Better streak visualization
-- [ ] Final habit tests
+- [x] Jalali month navigation
+- [x] Monthly habit heatmap
+- [x] Completed-day visualization
+- [x] Missed-day visualization
+- [x] Unscheduled-day visualization
+- [x] Future-day visualization
+- [x] View previous months
+- [x] Correct past completions
+- [x] Monthly completion percentage
+- [x] Monthly completion statistics
+- [x] Streak visualization
+- [x] Persistent history
+- [x] Final habit tests
 
 ## Milestone 6 — Study Planner
 

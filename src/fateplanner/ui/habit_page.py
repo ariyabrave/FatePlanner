@@ -29,6 +29,9 @@ from fateplanner.services.habit_service import (
 from fateplanner.ui.habit_dialog import (
     HabitDialog,
 )
+from fateplanner.ui.habit_history_dialog import (
+    HabitHistoryDialog,
+)
 from fateplanner.utils.date_utils import (
     format_jalali_date,
     to_persian_digits,
@@ -78,7 +81,6 @@ class HabitPage(QWidget):
             self.date_label
         )
 
-        # Today's progress
         progress_frame = QFrame()
 
         progress_layout = QVBoxLayout(
@@ -373,7 +375,7 @@ class HabitPage(QWidget):
             "🔥 تداوم فعلی: "
             f"{to_persian_digits(stats['current_streak'])} روز"
             "  |  "
-            "بهترین تداوم: "
+            "🏆 بهترین تداوم: "
             f"{to_persian_digits(stats['best_streak'])} روز"
         )
 
@@ -387,9 +389,9 @@ class HabitPage(QWidget):
             streak_text
         )
 
-        percentage = stats[
-            "percentage"
-        ]
+        percentage = (
+            stats["percentage"]
+        )
 
         history_label = QLabel(
             "عملکرد کلی: "
@@ -421,12 +423,24 @@ class HabitPage(QWidget):
 
         buttons = QHBoxLayout()
 
+        history_button = QPushButton(
+            "تاریخچه"
+        )
+
         edit_button = QPushButton(
             "ویرایش"
         )
 
         delete_button = QPushButton(
             "حذف"
+        )
+
+        history_button.clicked.connect(
+            lambda _,
+            habit_id=habit["id"]:
+            self.open_history(
+                habit_id
+            )
         )
 
         edit_button.clicked.connect(
@@ -443,6 +457,10 @@ class HabitPage(QWidget):
             self.confirm_delete(
                 habit_id
             )
+        )
+
+        buttons.addWidget(
+            history_button
         )
 
         buttons.addWidget(
@@ -552,6 +570,19 @@ class HabitPage(QWidget):
             )
 
             return
+
+        self.refresh()
+
+    def open_history(
+        self,
+        habit_id: int,
+    ):
+        dialog = HabitHistoryDialog(
+            habit_id,
+            self,
+        )
+
+        dialog.exec()
 
         self.refresh()
 
