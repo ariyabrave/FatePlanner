@@ -22,13 +22,21 @@ from PySide6.QtWidgets import (
 )
 
 from fateplanner.services.task_service import (
+    create_subtask,
     create_task,
     delete_task,
+    get_subtask_progress,
+    get_subtasks,
+    get_task,
     get_task_progress,
     get_task_progress_for_date,
     get_tasks,
     get_tasks_for_date,
     set_task_completed,
+    update_task,
+)
+from fateplanner.ui.subtask_dialog import (
+    SubtaskDialog,
 )
 from fateplanner.ui.task_dialog import (
     TaskDialog,
@@ -38,6 +46,7 @@ from fateplanner.ui.weekly_planner import (
 )
 from fateplanner.utils.date_utils import (
     format_jalali_date,
+    format_jalali_short,
 )
 
 
@@ -57,8 +66,8 @@ class MainWindow(QMainWindow):
         )
 
         self.resize(
-            1150,
-            750,
+            1180,
+            780,
         )
 
         self.setLayoutDirection(
@@ -75,10 +84,7 @@ class MainWindow(QMainWindow):
             central_widget
         )
 
-        # =========================
         # Sidebar
-        # =========================
-
         self.sidebar = QListWidget()
 
         self.sidebar.setFixedWidth(
@@ -99,13 +105,8 @@ class MainWindow(QMainWindow):
             ]
         )
 
-        # =========================
         # Pages
-        # =========================
-
-        self.pages = (
-            QStackedWidget()
-        )
+        self.pages = QStackedWidget()
 
         self.home_page = (
             self.create_home_page()
@@ -115,11 +116,9 @@ class MainWindow(QMainWindow):
             self.create_today_page()
         )
 
-        self.weekly_page = (
-            WeeklyPlanner(
-                on_data_changed=(
-                    self.refresh_all
-                )
+        self.weekly_page = WeeklyPlanner(
+            on_data_changed=(
+                self.refresh_all
             )
         )
 
@@ -144,9 +143,7 @@ class MainWindow(QMainWindow):
             "تنظیمات",
         ]
 
-        for page_name in (
-            remaining_pages
-        ):
+        for page_name in remaining_pages:
             self.pages.addWidget(
                 self.create_placeholder_page(
                     page_name
@@ -221,12 +218,6 @@ class MainWindow(QMainWindow):
             "خوش آمدی به FatePlanner"
         )
 
-        subtitle.setStyleSheet(
-            """
-            font-size: 16px;
-            """
-        )
-
         layout.addWidget(
             title
         )
@@ -247,16 +238,12 @@ class MainWindow(QMainWindow):
             """
         )
 
-        progress_layout = (
-            QVBoxLayout(
-                progress_frame
-            )
+        progress_layout = QVBoxLayout(
+            progress_frame
         )
 
-        self.home_progress_label = (
-            QLabel(
-                "پیشرفت کلی: ۰٪"
-            )
+        self.home_progress_label = QLabel(
+            "پیشرفت کلی: ۰٪"
         )
 
         self.home_progress_label.setStyleSheet(
@@ -266,17 +253,15 @@ class MainWindow(QMainWindow):
             """
         )
 
-        self.home_progress_bar = (
-            QProgressBar()
-        )
+        self.home_progress_bar = QProgressBar()
 
         self.home_progress_bar.setRange(
             0,
             100,
         )
 
-        self.home_progress_details = (
-            QLabel("")
+        self.home_progress_details = QLabel(
+            ""
         )
 
         progress_layout.addWidget(
@@ -327,14 +312,10 @@ class MainWindow(QMainWindow):
             tasks_title
         )
 
-        self.home_tasks_container = (
-            QWidget()
-        )
+        self.home_tasks_container = QWidget()
 
-        self.home_tasks_layout = (
-            QVBoxLayout(
-                self.home_tasks_container
-            )
+        self.home_tasks_layout = QVBoxLayout(
+            self.home_tasks_container
         )
 
         self.home_tasks_layout.setAlignment(
@@ -382,9 +363,7 @@ class MainWindow(QMainWindow):
             """
         )
 
-        self.today_date_label = (
-            QLabel()
-        )
+        self.today_date_label = QLabel()
 
         self.today_date_label.setStyleSheet(
             """
@@ -412,16 +391,12 @@ class MainWindow(QMainWindow):
             """
         )
 
-        progress_layout = (
-            QVBoxLayout(
-                progress_frame
-            )
+        progress_layout = QVBoxLayout(
+            progress_frame
         )
 
-        self.today_progress_label = (
-            QLabel(
-                "پیشرفت امروز: ۰٪"
-            )
+        self.today_progress_label = QLabel(
+            "پیشرفت امروز: ۰٪"
         )
 
         self.today_progress_label.setStyleSheet(
@@ -431,17 +406,15 @@ class MainWindow(QMainWindow):
             """
         )
 
-        self.today_progress_bar = (
-            QProgressBar()
-        )
+        self.today_progress_bar = QProgressBar()
 
         self.today_progress_bar.setRange(
             0,
             100,
         )
 
-        self.today_progress_details = (
-            QLabel("")
+        self.today_progress_details = QLabel(
+            ""
         )
 
         progress_layout.addWidget(
@@ -460,10 +433,8 @@ class MainWindow(QMainWindow):
             progress_frame
         )
 
-        add_today_button = (
-            QPushButton(
-                "＋ افزودن کار برای امروز"
-            )
+        add_today_button = QPushButton(
+            "＋ افزودن کار برای امروز"
         )
 
         add_today_button.setMinimumHeight(
@@ -494,14 +465,10 @@ class MainWindow(QMainWindow):
             schedule_title
         )
 
-        self.today_tasks_container = (
-            QWidget()
-        )
+        self.today_tasks_container = QWidget()
 
-        self.today_tasks_layout = (
-            QVBoxLayout(
-                self.today_tasks_container
-            )
+        self.today_tasks_layout = QVBoxLayout(
+            self.today_tasks_container
         )
 
         self.today_tasks_layout.setAlignment(
@@ -554,12 +521,6 @@ class MainWindow(QMainWindow):
             "این بخش در مراحل بعدی FatePlanner ساخته می‌شود."
         )
 
-        message.setStyleSheet(
-            """
-            font-size: 16px;
-            """
-        )
-
         layout.addWidget(
             title
         )
@@ -573,7 +534,7 @@ class MainWindow(QMainWindow):
         return page
 
     # =========================
-    # Dialogs
+    # New tasks
     # =========================
 
     def open_general_task_dialog(
@@ -584,7 +545,7 @@ class MainWindow(QMainWindow):
         )
 
         if dialog.exec():
-            self.save_task_from_dialog(
+            self.save_new_task(
                 dialog
             )
 
@@ -593,27 +554,21 @@ class MainWindow(QMainWindow):
     ):
         dialog = TaskDialog(
             self,
-            default_date=(
-                QDate.currentDate()
-            ),
+            default_date=QDate.currentDate(),
         )
 
         if dialog.exec():
-            self.save_task_from_dialog(
+            self.save_new_task(
                 dialog
             )
 
-    def save_task_from_dialog(
+    def save_new_task(
         self,
         dialog: TaskDialog,
     ):
-        task_data = (
-            dialog.get_task_data()
-        )
-
         try:
             create_task(
-                **task_data
+                **dialog.get_task_data()
             )
 
         except ValueError as error:
@@ -622,6 +577,81 @@ class MainWindow(QMainWindow):
                 "خطا",
                 str(error),
             )
+
+            return
+
+        self.refresh_all()
+
+    # =========================
+    # Edit tasks
+    # =========================
+
+    def edit_task(
+        self,
+        task_id: int,
+    ):
+        task = get_task(
+            task_id
+        )
+
+        if task is None:
+            return
+
+        dialog = TaskDialog(
+            self,
+            task=task,
+        )
+
+        if not dialog.exec():
+            return
+
+        try:
+            update_task(
+                task_id=task_id,
+                **dialog.get_task_data(),
+            )
+
+        except ValueError as error:
+            QMessageBox.warning(
+                self,
+                "خطا",
+                str(error),
+            )
+
+            return
+
+        self.refresh_all()
+
+    # =========================
+    # Subtasks
+    # =========================
+
+    def add_subtask(
+        self,
+        parent_id: int,
+    ):
+        dialog = SubtaskDialog(
+            self
+        )
+
+        if not dialog.exec():
+            return
+
+        data = dialog.get_data()
+
+        try:
+            create_subtask(
+                parent_id=parent_id,
+                **data,
+            )
+
+        except ValueError as error:
+            QMessageBox.warning(
+                self,
+                "خطا",
+                str(error),
+            )
+
             return
 
         self.refresh_all()
@@ -693,32 +723,24 @@ class MainWindow(QMainWindow):
     def refresh_today(
         self,
     ):
-        today_date = (
-            date.today()
-        )
+        today_date = date.today()
 
         today = (
             today_date.isoformat()
         )
 
-        visible_date = (
+        self.today_date_label.setText(
             format_jalali_date(
                 today_date
             )
-        )
-
-        self.today_date_label.setText(
-            visible_date
         )
 
         self.clear_layout(
             self.today_tasks_layout
         )
 
-        tasks = (
-            get_tasks_for_date(
-                today
-            )
+        tasks = get_tasks_for_date(
+            today
         )
 
         if not tasks:
@@ -740,10 +762,8 @@ class MainWindow(QMainWindow):
             total,
             completed,
             percentage,
-        ) = (
-            get_task_progress_for_date(
-                today
-            )
+        ) = get_task_progress_for_date(
+            today
         )
 
         self.today_progress_label.setText(
@@ -767,7 +787,7 @@ class MainWindow(QMainWindow):
             )
 
     # =========================
-    # Task widget
+    # Task card
     # =========================
 
     def create_task_widget(
@@ -787,13 +807,13 @@ class MainWindow(QMainWindow):
             """
         )
 
-        layout = QHBoxLayout(
+        outer_layout = QVBoxLayout(
             frame
         )
 
-        text_layout = (
-            QVBoxLayout()
-        )
+        top_layout = QHBoxLayout()
+
+        content_layout = QVBoxLayout()
 
         checkbox = QCheckBox(
             task["title"]
@@ -827,17 +847,15 @@ class MainWindow(QMainWindow):
             )
         )
 
-        text_layout.addWidget(
+        content_layout.addWidget(
             checkbox
         )
 
         details = []
 
-        priority = (
-            PRIORITY_LABELS.get(
-                task["priority"],
-                "معمولی",
-            )
+        priority = PRIORITY_LABELS.get(
+            task["priority"],
+            "معمولی",
         )
 
         details.append(
@@ -845,7 +863,6 @@ class MainWindow(QMainWindow):
         )
 
         if show_schedule:
-
             if task["all_day"]:
                 details.append(
                     "تمام روز"
@@ -861,22 +878,28 @@ class MainWindow(QMainWindow):
                     f"{task['end_time']}"
                 )
 
-            elif task["start_time"]:
-                details.append(
-                    f"شروع: "
-                    f"{task['start_time']}"
-                )
-
             else:
                 details.append(
                     "بدون ساعت"
                 )
 
         elif task["due_date"]:
-            details.append(
-                f"تاریخ: "
-                f"{task['due_date']}"
-            )
+            try:
+                task_date = (
+                    date.fromisoformat(
+                        task["due_date"]
+                    )
+                )
+
+                details.append(
+                    "تاریخ: "
+                    + format_jalali_short(
+                        task_date
+                    )
+                )
+
+            except ValueError:
+                pass
 
         details_label = QLabel(
             " | ".join(
@@ -891,7 +914,7 @@ class MainWindow(QMainWindow):
             """
         )
 
-        text_layout.addWidget(
+        content_layout.addWidget(
             details_label
         )
 
@@ -911,16 +934,105 @@ class MainWindow(QMainWindow):
                 """
             )
 
-            text_layout.addWidget(
+            content_layout.addWidget(
                 description
             )
+
+        top_layout.addLayout(
+            content_layout,
+            1,
+        )
+
+        outer_layout.addLayout(
+            top_layout
+        )
+
+        # Subtasks
+        subtasks = get_subtasks(
+            task["id"]
+        )
+
+        if subtasks:
+            (
+                subtask_total,
+                subtask_completed,
+                subtask_percentage,
+            ) = get_subtask_progress(
+                task["id"]
+            )
+
+            progress_label = QLabel(
+                f"زیرکارها: "
+                f"{subtask_completed} از "
+                f"{subtask_total}"
+            )
+
+            progress_label.setStyleSheet(
+                """
+                font-weight: bold;
+                margin-top: 5px;
+                """
+            )
+
+            outer_layout.addWidget(
+                progress_label
+            )
+
+            subtask_progress = QProgressBar()
+
+            subtask_progress.setRange(
+                0,
+                100,
+            )
+
+            subtask_progress.setValue(
+                subtask_percentage
+            )
+
+            subtask_progress.setMaximumHeight(
+                18
+            )
+
+            outer_layout.addWidget(
+                subtask_progress
+            )
+
+            for subtask in subtasks:
+                outer_layout.addWidget(
+                    self.create_subtask_widget(
+                        subtask
+                    )
+                )
+
+        # Buttons
+        buttons = QHBoxLayout()
+
+        edit_button = QPushButton(
+            "ویرایش"
+        )
+
+        add_subtask_button = QPushButton(
+            "＋ زیرکار"
+        )
 
         delete_button = QPushButton(
             "حذف"
         )
 
-        delete_button.setMaximumWidth(
-            80
+        edit_button.clicked.connect(
+            lambda _,
+            task_id=task["id"]:
+            self.edit_task(
+                task_id
+            )
+        )
+
+        add_subtask_button.clicked.connect(
+            lambda _,
+            task_id=task["id"]:
+            self.add_subtask(
+                task_id
+            )
         )
 
         delete_button.clicked.connect(
@@ -931,8 +1043,78 @@ class MainWindow(QMainWindow):
             )
         )
 
-        layout.addLayout(
-            text_layout,
+        buttons.addWidget(
+            edit_button
+        )
+
+        buttons.addWidget(
+            add_subtask_button
+        )
+
+        buttons.addWidget(
+            delete_button
+        )
+
+        outer_layout.addLayout(
+            buttons
+        )
+
+        return frame
+
+    def create_subtask_widget(
+        self,
+        subtask,
+    ):
+        widget = QWidget()
+
+        layout = QHBoxLayout(
+            widget
+        )
+
+        layout.setContentsMargins(
+            20,
+            2,
+            2,
+            2,
+        )
+
+        checkbox = QCheckBox(
+            subtask["title"]
+        )
+
+        checkbox.setChecked(
+            bool(
+                subtask["completed"]
+            )
+        )
+
+        checkbox.toggled.connect(
+            lambda checked,
+            task_id=subtask["id"]:
+            self.toggle_task(
+                task_id,
+                checked,
+            )
+        )
+
+        delete_button = QPushButton(
+            "×"
+        )
+
+        delete_button.setMaximumWidth(
+            40
+        )
+
+        delete_button.clicked.connect(
+            lambda _,
+            task_id=subtask["id"]:
+            self.confirm_delete_task(
+                task_id
+            )
+        )
+
+        layout.addWidget(
+            checkbox,
             1,
         )
 
@@ -940,10 +1122,10 @@ class MainWindow(QMainWindow):
             delete_button
         )
 
-        return frame
+        return widget
 
     # =========================
-    # Task actions
+    # Actions
     # =========================
 
     def toggle_task(
@@ -975,13 +1157,15 @@ class MainWindow(QMainWindow):
 
         if (
             answer
-            == QMessageBox.StandardButton.Yes
+            != QMessageBox.StandardButton.Yes
         ):
-            delete_task(
-                task_id
-            )
+            return
 
-            self.refresh_all()
+        delete_task(
+            task_id
+        )
+
+        self.refresh_all()
 
     # =========================
     # Helpers

@@ -30,12 +30,20 @@ class TaskDialog(QDialog):
         self,
         parent=None,
         default_date: QDate | date | None = None,
+        task=None,
     ):
         super().__init__(parent)
 
-        self.setWindowTitle(
-            "افزودن کار جدید"
-        )
+        self.task = task
+
+        if task is None:
+            self.setWindowTitle(
+                "افزودن کار جدید"
+            )
+        else:
+            self.setWindowTitle(
+                "ویرایش کار"
+            )
 
         self.setMinimumWidth(
             500
@@ -45,12 +53,25 @@ class TaskDialog(QDialog):
             Qt.LayoutDirection.RightToLeft
         )
 
+        # Determine initial date.
+        initial_date = default_date
+
+        if (
+            task is not None
+            and task["due_date"]
+        ):
+            initial_date = date.fromisoformat(
+                task["due_date"]
+            )
+
         main_layout = QVBoxLayout(
             self
         )
 
         title_label = QLabel(
             "کار جدید"
+            if task is None
+            else "ویرایش کار"
         )
 
         title_label.setStyleSheet(
@@ -66,20 +87,14 @@ class TaskDialog(QDialog):
 
         form_layout = QFormLayout()
 
-        # -------------------------
         # Title
-        # -------------------------
-
         self.title_input = QLineEdit()
 
         self.title_input.setPlaceholderText(
             "مثلاً مطالعه زبان انگلیسی"
         )
 
-        # -------------------------
         # Description
-        # -------------------------
-
         self.description_input = QTextEdit()
 
         self.description_input.setPlaceholderText(
@@ -90,10 +105,7 @@ class TaskDialog(QDialog):
             100
         )
 
-        # -------------------------
         # Priority
-        # -------------------------
-
         self.priority_input = QComboBox()
 
         self.priority_input.addItem(
@@ -115,35 +127,26 @@ class TaskDialog(QDialog):
             1
         )
 
-        # -------------------------
         # Date
-        # -------------------------
-
         self.has_due_date = QCheckBox(
             "برای این کار تاریخ تعیین شود"
         )
 
-        if default_date is not None:
+        if initial_date is not None:
             self.has_due_date.setChecked(
                 True
             )
 
         self.due_date_input = JalaliDateInput(
-            default_date=default_date
+            default_date=initial_date
         )
 
-        # -------------------------
-        # All-day
-        # -------------------------
-
+        # All day
         self.all_day_input = QCheckBox(
             "تمام روز"
         )
 
-        # -------------------------
         # Start time
-        # -------------------------
-
         self.start_time_input = QTimeEdit()
 
         self.start_time_input.setDisplayFormat(
@@ -157,10 +160,7 @@ class TaskDialog(QDialog):
             )
         )
 
-        # -------------------------
         # End time
-        # -------------------------
-
         self.end_time_input = QTimeEdit()
 
         self.end_time_input.setDisplayFormat(
@@ -226,11 +226,7 @@ class TaskDialog(QDialog):
             form_layout
         )
 
-        # -------------------------
-        # Buttons
-        # -------------------------
-
-        button_layout = QHBoxLayout()
+        buttons = QHBoxLayout()
 
         save_button = QPushButton(
             "ذخیره"
@@ -252,21 +248,90 @@ class TaskDialog(QDialog):
             self.reject
         )
 
-        button_layout.addWidget(
+        buttons.addWidget(
             save_button
         )
 
-        button_layout.addWidget(
+        buttons.addWidget(
             cancel_button
         )
 
         main_layout.addLayout(
-            button_layout
+            buttons
         )
+
+        if task is not None:
+            self.load_task(
+                task
+            )
 
         self.update_schedule_state()
 
         self.title_input.setFocus()
+
+    def load_task(
+        self,
+        task,
+    ):
+        self.title_input.setText(
+            task["title"]
+        )
+
+        self.description_input.setPlainText(
+            task["description"] or ""
+        )
+
+        priority_index = (
+            self.priority_input.findData(
+                task["priority"]
+            )
+        )
+
+        if priority_index >= 0:
+            self.priority_input.setCurrentIndex(
+                priority_index
+            )
+
+        if task["due_date"]:
+            self.has_due_date.setChecked(
+                True
+            )
+
+            self.due_date_input.set_gregorian_date(
+                date.fromisoformat(
+                    task["due_date"]
+                )
+            )
+        else:
+            self.has_due_date.setChecked(
+                False
+            )
+
+        self.all_day_input.setChecked(
+            bool(task["all_day"])
+        )
+
+        if task["start_time"]:
+            parsed_start = QTime.fromString(
+                task["start_time"],
+                "HH:mm",
+            )
+
+            if parsed_start.isValid():
+                self.start_time_input.setTime(
+                    parsed_start
+                )
+
+        if task["end_time"]:
+            parsed_end = QTime.fromString(
+                task["end_time"],
+                "HH:mm",
+            )
+
+            if parsed_end.isValid():
+                self.end_time_input.setTime(
+                    parsed_end
+                )
 
     def update_schedule_state(
         self,
@@ -314,6 +379,7 @@ class TaskDialog(QDialog):
                 "عنوان خالی",
                 "لطفاً برای کار یک عنوان وارد کنید.",
             )
+
             return
 
         if (

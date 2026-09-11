@@ -8,7 +8,9 @@ DEFAULT_DATABASE_PATH = APP_DATA_DIR / "fateplanner.db"
 
 
 def get_database_path() -> Path:
-    custom_path = os.getenv("FATEPLANNER_DB_PATH")
+    custom_path = os.getenv(
+        "FATEPLANNER_DB_PATH"
+    )
 
     if custom_path:
         return Path(custom_path)
@@ -30,8 +32,16 @@ def get_connection(
         exist_ok=True,
     )
 
-    connection = sqlite3.connect(path)
+    connection = sqlite3.connect(
+        path
+    )
+
     connection.row_factory = sqlite3.Row
+
+    # Required for ON DELETE CASCADE.
+    connection.execute(
+        "PRAGMA foreign_keys = ON"
+    )
 
     return connection
 
@@ -39,7 +49,10 @@ def get_connection(
 def initialize_database(
     database_path: str | Path | None = None,
 ) -> None:
-    with get_connection(database_path) as connection:
+    with get_connection(
+        database_path
+    ) as connection:
+
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS tasks (
@@ -52,7 +65,11 @@ def initialize_database(
                 all_day INTEGER NOT NULL DEFAULT 0,
                 priority TEXT NOT NULL DEFAULT 'normal',
                 completed INTEGER NOT NULL DEFAULT 0,
-                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                parent_id INTEGER,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (parent_id)
+                    REFERENCES tasks(id)
+                    ON DELETE CASCADE
             )
             """
         )
@@ -88,5 +105,31 @@ def initialize_database(
                 NOT NULL DEFAULT 0
                 """
             )
+
+        if "parent_id" not in columns:
+            connection.execute(
+                """
+                ALTER TABLE tasks
+                ADD COLUMN parent_id INTEGER
+                REFERENCES tasks(id)
+                ON DELETE CASCADE
+                """
+            )
+
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS
+            idx_tasks_parent_id
+            ON tasks(parent_id)
+            """
+        )
+
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS
+            idx_tasks_due_date
+            ON tasks(due_date)
+            """
+        )
 
         connection.commit()

@@ -12,20 +12,13 @@ VALID_PRIORITIES = {
 }
 
 
-def create_task(
+def _validate_task_data(
     title: str,
-    description: str = "",
-    due_date: str | None = None,
-    start_time: str | None = None,
-    end_time: str | None = None,
-    all_day: bool = False,
-    priority: str = "normal",
-    database_path: str | Path | None = None,
-) -> int:
-    title = title.strip()
-    description = description.strip()
-
-    if not title:
+    priority: str,
+    start_time: str | None,
+    end_time: str | None,
+) -> None:
+    if not title.strip():
         raise ValueError(
             "Task title cannot be empty."
         )
@@ -42,9 +35,57 @@ def create_task(
                 "than start time."
             )
 
+
+def create_task(
+    title: str,
+    description: str = "",
+    due_date: str | None = None,
+    start_time: str | None = None,
+    end_time: str | None = None,
+    all_day: bool = False,
+    priority: str = "normal",
+    parent_id: int | None = None,
+    database_path: str | Path | None = None,
+) -> int:
+    title = title.strip()
+    description = description.strip()
+
+    _validate_task_data(
+        title,
+        priority,
+        start_time,
+        end_time,
+    )
+
+    if all_day:
+        start_time = None
+        end_time = None
+
     with get_connection(
         database_path
     ) as connection:
+
+        if parent_id is not None:
+            parent = connection.execute(
+                """
+                SELECT
+                    id,
+                    parent_id
+                FROM tasks
+                WHERE id = ?
+                """,
+                (parent_id,),
+            ).fetchone()
+
+            if parent is None:
+                raise ValueError(
+                    "Parent task does not exist."
+                )
+
+            if parent["parent_id"] is not None:
+                raise ValueError(
+                    "Nested subtasks are not supported."
+                )
 
         cursor = connection.execute(
             """
@@ -55,9 +96,10 @@ def create_task(
                 start_time,
                 end_time,
                 all_day,
-                priority
+                priority,
+                parent_id
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 title,
@@ -67,14 +109,66 @@ def create_task(
                 end_time,
                 int(all_day),
                 priority,
+                parent_id,
             ),
         )
 
         connection.commit()
 
-        return int(
+        task_id = int(
             cursor.lastrowid
         )
+
+    if parent_id is not None:
+        _sync_parent_completion(
+            parent_id,
+            database_path,
+        )
+
+    return task_id
+
+
+def create_subtask(
+    parent_id: int,
+    title: str,
+    description: str = "",
+    database_path: str | Path | None = None,
+) -> int:
+    return create_task(
+        title=title,
+        description=description,
+        parent_id=parent_id,
+        database_path=database_path,
+    )
+
+
+def get_task(
+    task_id: int,
+    database_path: str | Path | None = None,
+):
+    with get_connection(
+        database_path
+    ) as connection:
+
+        return connection.execute(
+            """
+            SELECT
+                id,
+                title,
+                description,
+                due_date,
+                start_time,
+                end_time,
+                all_day,
+                priority,
+                completed,
+                parent_id,
+                created_at
+            FROM tasks
+            WHERE id = ?
+            """,
+            (task_id,),
+        ).fetchone()
 
 
 def get_tasks(
@@ -96,8 +190,10 @@ def get_tasks(
                 all_day,
                 priority,
                 completed,
+                parent_id,
                 created_at
             FROM tasks
+            WHERE parent_id IS NULL
             ORDER BY
                 completed ASC,
                 CASE priority
@@ -131,9 +227,12 @@ def get_tasks_for_date(
                 all_day,
                 priority,
                 completed,
+                parent_id,
                 created_at
             FROM tasks
-            WHERE due_date = ?
+            WHERE
+                due_date = ?
+                AND parent_id IS NULL
             ORDER BY
                 completed ASC,
                 all_day DESC,
@@ -144,6 +243,95 @@ def get_tasks_for_date(
         ).fetchall()
 
 
+def get_subtasks(
+    parent_id: int,
+    database_path: str | Path | None = None,
+):
+    with get_connection(
+        database_path
+    ) as connection:
+
+        return connection.execute(
+            """
+            SELECT
+                id,
+                title,
+                description,
+                completed,
+                parent_id,
+                created_at
+            FROM tasks
+            WHERE parent_id = ?
+            ORDER BY
+                completed ASC,
+                id ASC
+            """,
+            (parent_id,),
+        ).fetchall()
+
+
+def update_task(
+    task_id: int,
+    title: str,
+    description: str = "",
+    due_date: str | None = None,
+    start_time: str | None = None,
+    end_time: str | None = None,
+    all_day: bool = False,
+    priority: str = "normal",
+    database_path: str | Path | None = None,
+) -> None:
+    title = title.strip()
+    description = description.strip()
+
+    _validate_task_data(
+        title,
+        priority,
+        start_time,
+        end_time,
+    )
+
+    if all_day:
+        start_time = None
+        end_time = None
+
+    with get_connection(
+        database_path
+    ) as connection:
+
+        result = connection.execute(
+            """
+            UPDATE tasks
+            SET
+                title = ?,
+                description = ?,
+                due_date = ?,
+                start_time = ?,
+                end_time = ?,
+                all_day = ?,
+                priority = ?
+            WHERE id = ?
+            """,
+            (
+                title,
+                description,
+                due_date,
+                start_time,
+                end_time,
+                int(all_day),
+                priority,
+                task_id,
+            ),
+        )
+
+        if result.rowcount == 0:
+            raise ValueError(
+                "Task does not exist."
+            )
+
+        connection.commit()
+
+
 def set_task_completed(
     task_id: int,
     completed: bool,
@@ -152,6 +340,20 @@ def set_task_completed(
     with get_connection(
         database_path
     ) as connection:
+
+        task = connection.execute(
+            """
+            SELECT
+                id,
+                parent_id
+            FROM tasks
+            WHERE id = ?
+            """,
+            (task_id,),
+        ).fetchone()
+
+        if task is None:
+            return
 
         connection.execute(
             """
@@ -165,32 +367,39 @@ def set_task_completed(
             ),
         )
 
+        # Parent task:
+        # completing/uncompleting it affects
+        # all direct subtasks.
+        if task["parent_id"] is None:
+            connection.execute(
+                """
+                UPDATE tasks
+                SET completed = ?
+                WHERE parent_id = ?
+                """,
+                (
+                    int(completed),
+                    task_id,
+                ),
+            )
+
         connection.commit()
 
+        parent_id = task["parent_id"]
 
-def delete_task(
-    task_id: int,
-    database_path: str | Path | None = None,
-) -> None:
-    with get_connection(
-        database_path
-    ) as connection:
-
-        connection.execute(
-            """
-            DELETE FROM tasks
-            WHERE id = ?
-            """,
-            (task_id,),
+    # Subtask:
+    # recalculate parent completion.
+    if parent_id is not None:
+        _sync_parent_completion(
+            parent_id,
+            database_path,
         )
 
-        connection.commit()
 
-
-def get_task_progress(
+def _sync_parent_completion(
+    parent_id: int,
     database_path: str | Path | None = None,
-) -> tuple[int, int, int]:
-
+) -> None:
     with get_connection(
         database_path
     ) as connection:
@@ -207,7 +416,107 @@ def get_task_progress(
                     END
                 ) AS completed
             FROM tasks
+            WHERE parent_id = ?
+            """,
+            (parent_id,),
+        ).fetchone()
+
+        total = int(
+            row["total"]
+        )
+
+        completed = int(
+            row["completed"] or 0
+        )
+
+        # No subtasks = do not modify
+        # the parent's manual state.
+        if total == 0:
+            return
+
+        parent_completed = (
+            completed == total
+        )
+
+        connection.execute(
             """
+            UPDATE tasks
+            SET completed = ?
+            WHERE id = ?
+            """,
+            (
+                int(parent_completed),
+                parent_id,
+            ),
+        )
+
+        connection.commit()
+
+
+def delete_task(
+    task_id: int,
+    database_path: str | Path | None = None,
+) -> None:
+    parent_id = None
+
+    with get_connection(
+        database_path
+    ) as connection:
+
+        task = connection.execute(
+            """
+            SELECT parent_id
+            FROM tasks
+            WHERE id = ?
+            """,
+            (task_id,),
+        ).fetchone()
+
+        if task is None:
+            return
+
+        parent_id = task["parent_id"]
+
+        connection.execute(
+            """
+            DELETE FROM tasks
+            WHERE id = ?
+            """,
+            (task_id,),
+        )
+
+        connection.commit()
+
+    if parent_id is not None:
+        _sync_parent_completion(
+            parent_id,
+            database_path,
+        )
+
+
+def get_subtask_progress(
+    parent_id: int,
+    database_path: str | Path | None = None,
+) -> tuple[int, int, int]:
+    with get_connection(
+        database_path
+    ) as connection:
+
+        row = connection.execute(
+            """
+            SELECT
+                COUNT(*) AS total,
+                SUM(
+                    CASE
+                        WHEN completed = 1
+                        THEN 1
+                        ELSE 0
+                    END
+                ) AS completed
+            FROM tasks
+            WHERE parent_id = ?
+            """,
+            (parent_id,),
         ).fetchone()
 
     total = int(
@@ -232,11 +541,9 @@ def get_task_progress(
     )
 
 
-def get_task_progress_for_date(
-    date: str,
+def get_task_progress(
     database_path: str | Path | None = None,
 ) -> tuple[int, int, int]:
-
     with get_connection(
         database_path
     ) as connection:
@@ -253,7 +560,56 @@ def get_task_progress_for_date(
                     END
                 ) AS completed
             FROM tasks
-            WHERE due_date = ?
+            WHERE parent_id IS NULL
+            """
+        ).fetchone()
+
+    total = int(
+        row["total"]
+    )
+
+    completed = int(
+        row["completed"] or 0
+    )
+
+    percentage = (
+        round(
+            completed / total * 100
+        )
+        if total
+        else 0
+    )
+
+    return (
+        total,
+        completed,
+        percentage,
+    )
+
+
+def get_task_progress_for_date(
+    date: str,
+    database_path: str | Path | None = None,
+) -> tuple[int, int, int]:
+    with get_connection(
+        database_path
+    ) as connection:
+
+        row = connection.execute(
+            """
+            SELECT
+                COUNT(*) AS total,
+                SUM(
+                    CASE
+                        WHEN completed = 1
+                        THEN 1
+                        ELSE 0
+                    END
+                ) AS completed
+            FROM tasks
+            WHERE
+                due_date = ?
+                AND parent_id IS NULL
             """,
             (date,),
         ).fetchone()
@@ -266,12 +622,13 @@ def get_task_progress_for_date(
         row["completed"] or 0
     )
 
-    if total:
-        percentage = round(
+    percentage = (
+        round(
             completed / total * 100
         )
-    else:
-        percentage = 0
+        if total
+        else 0
+    )
 
     return (
         total,
