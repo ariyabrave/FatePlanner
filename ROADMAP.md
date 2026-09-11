@@ -50,7 +50,7 @@
 - [x] Gregorian/ISO internal storage
 - [x] Tests
 
-## ⏳ Milestone 4 — Recurring Tasks + Subtasks
+## ✅ Milestone 4 — Recurring Tasks + Subtasks
 
 ### ✅ 4A — Task Editing + Subtasks
 
@@ -60,10 +60,11 @@
 - [x] Subtask progress
 - [x] Auto-complete parent
 - [x] Parent completion cascade
+- [x] Subtask deletion
 - [x] Parent deletion cascade
 - [x] Tests
 
-### ⏳ 4B — Recurring Tasks
+### ✅ 4B — Recurring Tasks
 
 - [x] Recurring series database model
 - [x] Daily recurrence
@@ -77,10 +78,12 @@
 - [x] Selected weekday controls
 - [x] Today planner integration
 - [x] Weekly planner integration
-- [ ] Edit entire recurring series
-- [ ] Delete entire recurring series
-- [ ] Series management UI
-- [ ] Final recurrence tests
+- [x] Edit one occurrence
+- [x] Edit entire recurring series
+- [x] Delete one occurrence
+- [x] Delete entire recurring series
+- [x] Preserve completed history
+- [x] Final recurrence tests
 
 ## Milestone 5 — Habits
 

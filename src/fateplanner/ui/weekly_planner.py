@@ -45,6 +45,8 @@ class WeeklyPlanner(QWidget):
         self,
         parent=None,
         on_data_changed=None,
+        on_edit_task=None,
+        on_delete_task=None,
     ):
         super().__init__(parent)
 
@@ -56,8 +58,16 @@ class WeeklyPlanner(QWidget):
             on_data_changed
         )
 
-        self.main_layout = (
-            QVBoxLayout(self)
+        self.on_edit_task = (
+            on_edit_task
+        )
+
+        self.on_delete_task = (
+            on_delete_task
+        )
+
+        self.main_layout = QVBoxLayout(
+            self
         )
 
         title = QLabel(
@@ -203,7 +213,7 @@ class WeeklyPlanner(QWidget):
         frame = QFrame()
 
         frame.setMinimumWidth(
-            175
+            180
         )
 
         frame.setStyleSheet(
@@ -382,14 +392,9 @@ class WeeklyPlanner(QWidget):
             and task["end_time"]
         ):
             schedule_text = (
-                f"{task['start_time']}"
-                f" - "
+                f"{task['start_time']} "
+                f"تا "
                 f"{task['end_time']}"
-            )
-
-        elif task["start_time"]:
-            schedule_text = (
-                task["start_time"]
             )
 
         else:
@@ -411,6 +416,47 @@ class WeeklyPlanner(QWidget):
         layout.addWidget(
             schedule_label
         )
+
+        action_layout = QHBoxLayout()
+
+        if self.on_edit_task:
+            edit_button = QPushButton(
+                "ویرایش"
+            )
+
+            edit_button.clicked.connect(
+                lambda _,
+                task_id=task["id"]:
+                self.on_edit_task(
+                    task_id
+                )
+            )
+
+            action_layout.addWidget(
+                edit_button
+            )
+
+        if self.on_delete_task:
+            delete_button = QPushButton(
+                "حذف"
+            )
+
+            delete_button.clicked.connect(
+                lambda _,
+                task_id=task["id"]:
+                self.on_delete_task(
+                    task_id
+                )
+            )
+
+            action_layout.addWidget(
+                delete_button
+            )
+
+        if action_layout.count():
+            layout.addLayout(
+                action_layout
+            )
 
         return widget
 
@@ -550,9 +596,7 @@ class WeeklyPlanner(QWidget):
     def go_to_today(
         self,
     ):
-        self.anchor_date = (
-            date.today()
-        )
+        self.anchor_date = date.today()
 
         self.refresh()
 

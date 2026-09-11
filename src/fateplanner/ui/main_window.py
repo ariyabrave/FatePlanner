@@ -23,8 +23,11 @@ from PySide6.QtWidgets import (
 
 from fateplanner.services.recurrence_service import (
     create_recurring_series,
+    delete_recurring_series,
     ensure_recurring_instances_through,
     generate_recurring_instances,
+    get_recurring_template,
+    update_recurring_series,
 )
 from fateplanner.services.task_service import (
     create_subtask,
@@ -39,6 +42,9 @@ from fateplanner.services.task_service import (
     get_tasks_for_date,
     set_task_completed,
     update_task,
+)
+from fateplanner.ui.recurring_series_dialog import (
+    RecurringSeriesDialog,
 )
 from fateplanner.ui.subtask_dialog import (
     SubtaskDialog,
@@ -122,7 +128,13 @@ class MainWindow(QMainWindow):
         self.weekly_page = WeeklyPlanner(
             on_data_changed=(
                 self.refresh_all
-            )
+            ),
+            on_edit_task=(
+                self.edit_task
+            ),
+            on_delete_task=(
+                self.confirm_delete_task
+            ),
         )
 
         self.pages.addWidget(
@@ -171,6 +183,10 @@ class MainWindow(QMainWindow):
         )
 
         self.refresh_all()
+
+    # =========================
+    # Navigation
+    # =========================
 
     def change_page(
         self,
@@ -226,16 +242,6 @@ class MainWindow(QMainWindow):
         )
 
         progress_frame = QFrame()
-
-        progress_frame.setStyleSheet(
-            """
-            QFrame {
-                border: 1px solid #d0d0d0;
-                border-radius: 10px;
-                padding: 10px;
-            }
-            """
-        )
 
         progress_layout = QVBoxLayout(
             progress_frame
@@ -475,6 +481,10 @@ class MainWindow(QMainWindow):
 
         return page
 
+    # =========================
+    # Placeholder
+    # =========================
+
     def create_placeholder_page(
         self,
         page_name: str,
@@ -513,7 +523,7 @@ class MainWindow(QMainWindow):
         return page
 
     # =========================
-    # Create task
+    # New tasks
     # =========================
 
     def open_general_task_dialog(
@@ -545,9 +555,7 @@ class MainWindow(QMainWindow):
         self,
         dialog: TaskDialog,
     ):
-        task_data = (
-            dialog.get_task_data()
-        )
+        task_data = dialog.get_task_data()
 
         recurrence_data = (
             dialog.get_recurrence_data()
@@ -627,7 +635,7 @@ class MainWindow(QMainWindow):
         self.refresh_all()
 
     # =========================
-    # Editing
+    # Edit
     # =========================
 
     def edit_task(
@@ -641,6 +649,37 @@ class MainWindow(QMainWindow):
         if task is None:
             return
 
+        template_id = (
+            task[
+                "recurring_template_id"
+            ]
+        )
+
+        if template_id:
+            scope = (
+                self.ask_recurring_scope(
+                    "ویرایش"
+                )
+            )
+
+            if scope is None:
+                return
+
+            if scope == "series":
+                self.edit_recurring_series(
+                    template_id
+                )
+
+                return
+
+        self.edit_single_task(
+            task
+        )
+
+    def edit_single_task(
+        self,
+        task,
+    ):
         dialog = TaskDialog(
             self,
             task=task,
@@ -651,8 +690,57 @@ class MainWindow(QMainWindow):
 
         try:
             update_task(
-                task_id=task_id,
+                task_id=task["id"],
                 **dialog.get_task_data(),
+            )
+
+        except ValueError as error:
+            QMessageBox.warning(
+                self,
+                "خطا",
+                str(error),
+            )
+
+            return
+
+        self.refresh_all()
+
+    def edit_recurring_series(
+        self,
+        template_id: int,
+    ):
+        template = get_recurring_template(
+            template_id
+        )
+
+        if template is None:
+            QMessageBox.warning(
+                self,
+                "خطا",
+                "مجموعه تکرارشونده پیدا نشد.",
+            )
+
+            return
+
+        dialog = RecurringSeriesDialog(
+            template,
+            self,
+        )
+
+        if not dialog.exec():
+            return
+
+        try:
+            update_recurring_series(
+                template_id=template_id,
+                replace_instances_from=(
+                    date.today().isoformat()
+                ),
+                **dialog.get_data(),
+            )
+
+            ensure_recurring_instances_through(
+                date.today().isoformat()
             )
 
         except ValueError as error:
@@ -771,9 +859,7 @@ class MainWindow(QMainWindow):
     ):
         today_date = date.today()
 
-        today = (
-            today_date.isoformat()
-        )
+        today = today_date.isoformat()
 
         ensure_recurring_instances_through(
             today
@@ -837,7 +923,7 @@ class MainWindow(QMainWindow):
             )
 
     # =========================
-    # Task card
+    # Task cards
     # =========================
 
     def create_task_widget(
@@ -860,8 +946,6 @@ class MainWindow(QMainWindow):
         outer_layout = QVBoxLayout(
             frame
         )
-
-        content_layout = QVBoxLayout()
 
         title = task["title"]
 
@@ -905,7 +989,7 @@ class MainWindow(QMainWindow):
             )
         )
 
-        content_layout.addWidget(
+        outer_layout.addWidget(
             checkbox
         )
 
@@ -948,10 +1032,8 @@ class MainWindow(QMainWindow):
 
         elif task["due_date"]:
             try:
-                task_date = (
-                    date.fromisoformat(
-                        task["due_date"]
-                    )
+                task_date = date.fromisoformat(
+                    task["due_date"]
                 )
 
                 details.append(
@@ -977,7 +1059,7 @@ class MainWindow(QMainWindow):
             """
         )
 
-        content_layout.addWidget(
+        outer_layout.addWidget(
             detail_label
         )
 
@@ -990,13 +1072,9 @@ class MainWindow(QMainWindow):
                 True
             )
 
-            content_layout.addWidget(
+            outer_layout.addWidget(
                 description
             )
-
-        outer_layout.addLayout(
-            content_layout
-        )
 
         subtasks = get_subtasks(
             task["id"]
@@ -1021,19 +1099,19 @@ class MainWindow(QMainWindow):
                 progress_label
             )
 
-            subtask_progress = QProgressBar()
+            progress_bar = QProgressBar()
 
-            subtask_progress.setRange(
+            progress_bar.setRange(
                 0,
                 100,
             )
 
-            subtask_progress.setValue(
+            progress_bar.setValue(
                 subtask_percentage
             )
 
             outer_layout.addWidget(
-                subtask_progress
+                progress_bar
             )
 
             for subtask in subtasks:
@@ -1163,6 +1241,65 @@ class MainWindow(QMainWindow):
         return widget
 
     # =========================
+    # Recurring scope
+    # =========================
+
+    def ask_recurring_scope(
+        self,
+        action: str,
+    ) -> str | None:
+        box = QMessageBox(
+            self
+        )
+
+        box.setIcon(
+            QMessageBox.Icon.Question
+        )
+
+        box.setWindowTitle(
+            f"{action} کار تکرارشونده"
+        )
+
+        box.setText(
+            "این کار بخشی از یک مجموعه تکرارشونده است."
+        )
+
+        box.setInformativeText(
+            f"{action} فقط برای همین مورد انجام شود "
+            "یا برای کل مجموعه؟"
+        )
+
+        single_button = box.addButton(
+            "فقط این مورد",
+            QMessageBox.ButtonRole.AcceptRole,
+        )
+
+        series_button = box.addButton(
+            "کل مجموعه",
+            QMessageBox.ButtonRole.ActionRole,
+        )
+
+        cancel_button = box.addButton(
+            "انصراف",
+            QMessageBox.ButtonRole.RejectRole,
+        )
+
+        box.exec()
+
+        clicked = box.clickedButton()
+
+        if clicked == single_button:
+            return "single"
+
+        if clicked == series_button:
+            return "series"
+
+        if clicked == cancel_button:
+            return None
+
+        return None
+
+    # =========================
     # Actions
     # =========================
 
@@ -1182,10 +1319,62 @@ class MainWindow(QMainWindow):
         self,
         task_id: int,
     ):
+        task = get_task(
+            task_id
+        )
+
+        if task is None:
+            return
+
+        template_id = (
+            task[
+                "recurring_template_id"
+            ]
+        )
+
+        if template_id:
+            scope = (
+                self.ask_recurring_scope(
+                    "حذف"
+                )
+            )
+
+            if scope is None:
+                return
+
+            if scope == "series":
+                answer = QMessageBox.question(
+                    self,
+                    "حذف کل مجموعه",
+                    (
+                        "همه موارد این مجموعه "
+                        "تکرارشونده حذف شوند؟"
+                    ),
+                    (
+                        QMessageBox.StandardButton.Yes
+                        | QMessageBox.StandardButton.No
+                    ),
+                    QMessageBox.StandardButton.No,
+                )
+
+                if (
+                    answer
+                    != QMessageBox.StandardButton.Yes
+                ):
+                    return
+
+                delete_recurring_series(
+                    template_id
+                )
+
+                self.refresh_all()
+
+                return
+
         answer = QMessageBox.question(
             self,
             "حذف کار",
-            "آیا از حذف این کار مطمئن هستی؟",
+            "آیا از حذف این مورد مطمئن هستی؟",
             (
                 QMessageBox.StandardButton.Yes
                 | QMessageBox.StandardButton.No
@@ -1204,6 +1393,10 @@ class MainWindow(QMainWindow):
         )
 
         self.refresh_all()
+
+    # =========================
+    # Helpers
+    # =========================
 
     def clear_layout(
         self,
