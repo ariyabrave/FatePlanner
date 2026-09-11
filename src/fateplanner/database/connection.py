@@ -297,30 +297,21 @@ def initialize_database(
         )
 
         # ==================================
-        # Study subjects
+        # Study
         # ==================================
 
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS study_subjects (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-
                 name TEXT NOT NULL,
-
                 description TEXT,
-
-                archived INTEGER NOT NULL
-                    DEFAULT 0,
-
+                archived INTEGER NOT NULL DEFAULT 0,
                 created_at TEXT NOT NULL
                     DEFAULT CURRENT_TIMESTAMP
             )
             """
         )
-
-        # ==================================
-        # Study sessions
-        # ==================================
 
         connection.execute(
             """
@@ -370,10 +361,6 @@ def initialize_database(
             """
         )
 
-        # ==================================
-        # Study focus timer state
-        # ==================================
-
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS
@@ -407,6 +394,105 @@ def initialize_database(
                 FOREIGN KEY (session_id)
                     REFERENCES study_sessions(id)
                     ON DELETE SET NULL
+            )
+            """
+        )
+
+        # ==================================
+        # Finance categories
+        # ==================================
+
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS
+            finance_categories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+                name TEXT NOT NULL,
+
+                transaction_type TEXT NOT NULL
+                    CHECK (
+                        transaction_type
+                        IN ('income', 'expense')
+                    ),
+
+                created_at TEXT NOT NULL
+                    DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS
+            idx_finance_categories_type
+            ON finance_categories(
+                transaction_type
+            )
+            """
+        )
+
+        # ==================================
+        # Finance transactions
+        # ==================================
+
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS
+            finance_transactions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+                transaction_type TEXT NOT NULL
+                    CHECK (
+                        transaction_type
+                        IN ('income', 'expense')
+                    ),
+
+                category_id INTEGER NOT NULL,
+
+                amount INTEGER NOT NULL
+                    CHECK (amount > 0),
+
+                transaction_date TEXT NOT NULL,
+
+                description TEXT,
+
+                created_at TEXT NOT NULL
+                    DEFAULT CURRENT_TIMESTAMP,
+
+                FOREIGN KEY (category_id)
+                    REFERENCES finance_categories(id)
+                    ON DELETE RESTRICT
+            )
+            """
+        )
+
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS
+            idx_finance_transactions_date
+            ON finance_transactions(
+                transaction_date
+            )
+            """
+        )
+
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS
+            idx_finance_transactions_type
+            ON finance_transactions(
+                transaction_type
+            )
+            """
+        )
+
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS
+            idx_finance_transactions_category
+            ON finance_transactions(
+                category_id
             )
             """
         )

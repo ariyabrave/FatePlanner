@@ -170,13 +170,31 @@
 - [x] Live timer/analytics synchronization
 - [x] Final study tests
 
-## Milestone 7 — Finance
+## ✅ Milestone 7 — Finance
 
-- [ ] Income
-- [ ] Expenses
-- [ ] Categories
-- [ ] Transaction history
-- [ ] Monthly totals
+- [x] Finance category database
+- [x] Income categories
+- [x] Expense categories
+- [x] Create categories
+- [x] Edit categories
+- [x] Safe category deletion
+- [x] Transaction database
+- [x] Income transactions
+- [x] Expense transactions
+- [x] Persian/Jalali transaction dates
+- [x] Integer Toman accounting
+- [x] Persian-digit amount input
+- [x] Transaction descriptions
+- [x] Edit transactions
+- [x] Delete transactions
+- [x] Monthly income total
+- [x] Monthly expense total
+- [x] Monthly balance
+- [x] Monthly transaction count
+- [x] Jalali month navigation
+- [x] Transaction history
+- [x] Persistent finance data
+- [x] Tests
 
 ## Milestone 8 — Budgets + Savings
 
