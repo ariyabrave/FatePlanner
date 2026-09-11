@@ -6,6 +6,12 @@ from fateplanner.database.connection import (
 )
 
 
+VALID_TIMER_PHASES = {
+    "focus",
+    "break",
+}
+
+
 def _parse_date(
     value: str,
 ) -> date:
@@ -565,8 +571,46 @@ def add_study_time(
         connection.commit()
 
 
+def sync_study_session_completion_from_time(
+    session_id: int,
+    database_path: str | Path | None = None,
+) -> bool:
+    session = get_study_session(
+        session_id,
+        database_path=database_path,
+    )
+
+    if session is None:
+        raise ValueError(
+            "Study session does not exist."
+        )
+
+    required_seconds = (
+        int(
+            session["planned_minutes"]
+        )
+        * 60
+    )
+
+    should_complete = (
+        int(
+            session["actual_seconds"]
+        )
+        >= required_seconds
+    )
+
+    if should_complete:
+        set_study_session_completed(
+            session_id,
+            True,
+            database_path=database_path,
+        )
+
+    return should_complete
+
+
 # =====================================
-# Statistics
+# Daily statistics
 # =====================================
 
 
@@ -698,3 +742,167 @@ def format_study_duration(
     return (
         f"{minutes} دقیقه"
     )
+
+
+# =====================================
+# Focus timer persistence
+# =====================================
+
+
+def save_study_timer_state(
+    *,
+    session_id: int | None,
+    phase: str,
+    focus_minutes: int,
+    break_minutes: int,
+    remaining_seconds: int,
+    pomodoro_count: int,
+    is_running: bool,
+    database_path: str | Path | None = None,
+) -> None:
+    if phase not in VALID_TIMER_PHASES:
+        raise ValueError(
+            "Invalid timer phase."
+        )
+
+    focus_minutes = int(
+        focus_minutes
+    )
+
+    break_minutes = int(
+        break_minutes
+    )
+
+    remaining_seconds = int(
+        remaining_seconds
+    )
+
+    pomodoro_count = int(
+        pomodoro_count
+    )
+
+    if focus_minutes < 1:
+        raise ValueError(
+            "Focus duration must be positive."
+        )
+
+    if break_minutes < 1:
+        raise ValueError(
+            "Break duration must be positive."
+        )
+
+    if remaining_seconds < 0:
+        raise ValueError(
+            "Remaining time cannot be negative."
+        )
+
+    if pomodoro_count < 0:
+        raise ValueError(
+            "Pomodoro count cannot be negative."
+        )
+
+    with get_connection(
+        database_path
+    ) as connection:
+
+        if session_id is not None:
+            session = connection.execute(
+                """
+                SELECT id
+                FROM study_sessions
+                WHERE id = ?
+                """,
+                (
+                    session_id,
+                ),
+            ).fetchone()
+
+            if session is None:
+                raise ValueError(
+                    "Study session does not exist."
+                )
+
+        connection.execute(
+            """
+            INSERT INTO study_timer_state (
+                id,
+                session_id,
+                phase,
+                focus_minutes,
+                break_minutes,
+                remaining_seconds,
+                pomodoro_count,
+                is_running,
+                updated_at
+            )
+            VALUES (
+                1,
+                ?, ?, ?, ?, ?, ?, ?,
+                CURRENT_TIMESTAMP
+            )
+
+            ON CONFLICT(id)
+            DO UPDATE SET
+                session_id = excluded.session_id,
+                phase = excluded.phase,
+                focus_minutes = excluded.focus_minutes,
+                break_minutes = excluded.break_minutes,
+                remaining_seconds = excluded.remaining_seconds,
+                pomodoro_count = excluded.pomodoro_count,
+                is_running = excluded.is_running,
+                updated_at = CURRENT_TIMESTAMP
+            """,
+            (
+                session_id,
+                phase,
+                focus_minutes,
+                break_minutes,
+                remaining_seconds,
+                pomodoro_count,
+                int(is_running),
+            ),
+        )
+
+        connection.commit()
+
+
+def get_study_timer_state(
+    database_path: str | Path | None = None,
+):
+    with get_connection(
+        database_path
+    ) as connection:
+
+        return connection.execute(
+            """
+            SELECT
+                id,
+                session_id,
+                phase,
+                focus_minutes,
+                break_minutes,
+                remaining_seconds,
+                pomodoro_count,
+                is_running,
+                updated_at
+            FROM study_timer_state
+            WHERE id = 1
+            """
+        ).fetchone()
+
+
+def clear_study_timer_state(
+    database_path: str | Path | None = None,
+) -> None:
+    with get_connection(
+        database_path
+    ) as connection:
+
+        connection.execute(
+            """
+            DELETE FROM study_timer_state
+            WHERE id = 1
+            """
+        )
+
+        connection.commit()

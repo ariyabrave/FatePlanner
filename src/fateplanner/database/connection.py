@@ -370,4 +370,45 @@ def initialize_database(
             """
         )
 
+        # ==================================
+        # Study focus timer state
+        # ==================================
+
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS
+            study_timer_state (
+                id INTEGER PRIMARY KEY
+                    CHECK (id = 1),
+
+                session_id INTEGER,
+
+                phase TEXT NOT NULL
+                    DEFAULT 'focus',
+
+                focus_minutes INTEGER NOT NULL
+                    DEFAULT 25,
+
+                break_minutes INTEGER NOT NULL
+                    DEFAULT 5,
+
+                remaining_seconds INTEGER NOT NULL
+                    DEFAULT 1500,
+
+                pomodoro_count INTEGER NOT NULL
+                    DEFAULT 0,
+
+                is_running INTEGER NOT NULL
+                    DEFAULT 0,
+
+                updated_at TEXT NOT NULL
+                    DEFAULT CURRENT_TIMESTAMP,
+
+                FOREIGN KEY (session_id)
+                    REFERENCES study_sessions(id)
+                    ON DELETE SET NULL
+            )
+            """
+        )
+
         connection.commit()

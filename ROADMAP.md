@@ -142,23 +142,26 @@
 - [x] Subject/session persistence
 - [x] Tests
 
-### ⏳ 6B — Focus / Pomodoro Timer
+### ✅ 6B — Focus / Pomodoro Timer
 
-- [ ] Select study session
-- [ ] 25 / 5 Pomodoro preset
-- [ ] 50 / 10 deep-focus preset
-- [ ] Custom focus duration
-- [ ] Start timer
-- [ ] Pause timer
-- [ ] Resume timer
-- [ ] Reset timer
-- [ ] Focus/break phases
-- [ ] Store actual study seconds
-- [ ] Automatically update session
-- [ ] Pomodoro counter
-- [ ] Session completion workflow
-- [ ] Timer persistence safety
-- [ ] Final study tests
+- [x] Select study session
+- [x] 25 / 5 Pomodoro preset
+- [x] 50 / 10 deep-focus preset
+- [x] Custom focus duration
+- [x] Start timer
+- [x] Pause timer
+- [x] Resume timer
+- [x] Reset timer
+- [x] Focus/break phases
+- [x] Manual phase switching
+- [x] Record actual study seconds
+- [x] Automatically update session
+- [x] Automatic session completion
+- [x] Manual session completion
+- [x] Pomodoro counter
+- [x] Timer state persistence
+- [x] Safe shutdown behavior
+- [x] Tests
 
 ### ⏳ 6C — Study History + Analytics
 
@@ -169,6 +172,7 @@
 - [ ] Planned vs actual
 - [ ] Jalali date navigation
 - [ ] Study charts
+- [ ] Final study tests
 
 ## Milestone 7 — Finance
 

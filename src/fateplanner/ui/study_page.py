@@ -29,6 +29,9 @@ from fateplanner.services.study_service import (
     update_study_session,
     update_subject,
 )
+from fateplanner.ui.focus_timer_widget import (
+    FocusTimerWidget,
+)
 from fateplanner.ui.study_session_dialog import (
     StudySessionDialog,
 )
@@ -126,6 +129,21 @@ class StudyPage(QWidget):
         )
 
         # ==================================
+        # Focus timer
+        # ==================================
+
+        self.focus_timer = FocusTimerWidget(
+            self,
+            on_data_changed=(
+                self.refresh_after_timer_change
+            ),
+        )
+
+        self.main_layout.addWidget(
+            self.focus_timer
+        )
+
+        # ==================================
         # Add buttons
         # ==================================
 
@@ -204,7 +222,7 @@ class StudyPage(QWidget):
         )
 
         subjects_scroll.setMaximumHeight(
-            230
+            210
         )
 
         subjects_scroll.setWidget(
@@ -278,6 +296,27 @@ class StudyPage(QWidget):
         )
 
         self.refresh_subjects()
+
+        self.refresh_sessions(
+            today_iso
+        )
+
+        self.refresh_stats(
+            today_iso
+        )
+
+        if hasattr(
+            self,
+            "focus_timer",
+        ):
+            self.focus_timer.refresh_sessions()
+
+    def refresh_after_timer_change(
+        self,
+    ):
+        today_iso = (
+            date.today().isoformat()
+        )
 
         self.refresh_sessions(
             today_iso
@@ -494,6 +533,10 @@ class StudyPage(QWidget):
         ):
             return
 
+        self.focus_timer.pause_timer(
+            notify=False
+        )
+
         delete_subject(
             subject_id
         )
@@ -603,8 +646,10 @@ class StudyPage(QWidget):
             session["planned_minutes"]
         )
 
-        actual = format_study_duration(
-            session["actual_seconds"]
+        actual = to_persian_digits(
+            format_study_duration(
+                session["actual_seconds"]
+            )
         )
 
         time_label = QLabel(
@@ -722,6 +767,13 @@ class StudyPage(QWidget):
         if session is None:
             return
 
+        if (
+            self.focus_timer.session_id
+            == session_id
+            and self.focus_timer.running
+        ):
+            self.focus_timer.pause_timer()
+
         dialog = StudySessionDialog(
             self,
             session=session,
@@ -757,7 +809,7 @@ class StudyPage(QWidget):
             completed,
         )
 
-        self.refresh()
+        self.refresh_after_timer_change()
 
     def confirm_delete_session(
         self,
@@ -782,6 +834,14 @@ class StudyPage(QWidget):
             != QMessageBox.StandardButton.Yes
         ):
             return
+
+        if (
+            self.focus_timer.session_id
+            == session_id
+        ):
+            self.focus_timer.pause_timer(
+                notify=False
+            )
 
         delete_study_session(
             session_id
@@ -825,8 +885,10 @@ class StudyPage(QWidget):
             stats["planned_minutes"]
         )
 
-        actual = format_study_duration(
-            stats["actual_seconds"]
+        actual = to_persian_digits(
+            format_study_duration(
+                stats["actual_seconds"]
+            )
         )
 
         self.time_details.setText(
