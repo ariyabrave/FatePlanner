@@ -60,13 +60,10 @@
 - [x] Subtask progress
 - [x] Auto-complete parent
 - [x] Parent completion cascade
-- [x] Subtask deletion
 - [x] Parent deletion cascade
 - [x] Tests
 
 ### ⏳ 4B — Recurring Tasks
-
-#### ✅ Recurrence Engine
 
 - [x] Recurring series database model
 - [x] Daily recurrence
@@ -76,20 +73,14 @@
 - [x] Recurrence end date
 - [x] Automatic occurrence generation
 - [x] Duplicate prevention
-- [x] Series update engine
-- [x] Series deletion engine
-- [x] Tests
-
-#### ⏳ Recurrence UI
-
-- [ ] Persian recurrence selector
-- [ ] Selected weekday controls
-- [ ] Recurrence end-date selector
-- [ ] Create recurring tasks
-- [ ] Edit recurring series
-- [ ] Delete recurring series
-- [ ] Daily planner integration
-- [ ] Weekly planner integration
+- [x] Persian recurrence selector
+- [x] Selected weekday controls
+- [x] Today planner integration
+- [x] Weekly planner integration
+- [ ] Edit entire recurring series
+- [ ] Delete entire recurring series
+- [ ] Series management UI
+- [ ] Final recurrence tests
 
 ## Milestone 5 — Habits
 

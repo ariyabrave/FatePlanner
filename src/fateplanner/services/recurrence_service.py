@@ -471,6 +471,38 @@ def ensure_recurring_instances_through(
             WHERE
                 is_recurring_template = 1
                 AND recurrence_start_date <= ?
+            """,
+            (
+                target_date.isoformat(),
+            ),
+        ).fetchall()
+
+    created = 0
+
+    for template in templates:
+        created += generate_recurring_instances(
+            template["id"],
+            target_date.isoformat(),
+            database_path=database_path,
+        )
+
+    return created
+
+    target_date = _parse_date(
+        through_date
+    )
+
+    with get_connection(
+        database_path
+    ) as connection:
+
+        templates = connection.execute(
+            """
+            SELECT id
+            FROM tasks
+            WHERE
+                is_recurring_template = 1
+                AND recurrence_start_date <= ?
                 AND (
                     recurrence_end_date IS NULL
                     OR recurrence_end_date >= ?

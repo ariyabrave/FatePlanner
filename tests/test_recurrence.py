@@ -409,3 +409,74 @@ def test_delete_recurring_series(
         )
         == []
     )
+
+def test_templates_do_not_appear_as_normal_tasks(
+    tmp_path,
+):
+    from fateplanner.services.task_service import (
+        get_tasks,
+    )
+
+    database = make_database(
+        tmp_path
+    )
+
+    create_recurring_series(
+        title="Recurring template",
+        recurrence_type="daily",
+        recurrence_start_date=(
+            "2026-09-11"
+        ),
+        database_path=database,
+    )
+
+    tasks = get_tasks(
+        database_path=database
+    )
+
+    assert tasks == []
+
+
+def test_ensure_generates_series_even_if_end_is_before_target(
+    tmp_path,
+):
+    from fateplanner.services.recurrence_service import (
+        ensure_recurring_instances_through,
+    )
+
+    database = make_database(
+        tmp_path
+    )
+
+    template_id = (
+        create_recurring_series(
+            title="Short series",
+            recurrence_type="daily",
+            recurrence_start_date=(
+                "2026-09-11"
+            ),
+            recurrence_end_date=(
+                "2026-09-13"
+            ),
+            database_path=database,
+        )
+    )
+
+    ensure_recurring_instances_through(
+        "2026-09-20",
+        database_path=database,
+    )
+
+    instances = get_series_instances(
+        template_id,
+        database_path=database,
+    )
+
+    assert [
+        task["due_date"]
+        for task in instances
+    ] == [
+        "2026-09-11",
+        "2026-09-12",
+        "2026-09-13",
+    ]    

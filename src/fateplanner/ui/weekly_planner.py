@@ -19,6 +19,11 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from fateplanner.services.recurrence_service import (
+    create_recurring_series,
+    ensure_recurring_instances_through,
+    generate_recurring_instances,
+)
 from fateplanner.services.task_service import (
     create_task,
     get_tasks_for_date,
@@ -55,7 +60,6 @@ class WeeklyPlanner(QWidget):
             QVBoxLayout(self)
         )
 
-        # Page title
         title = QLabel(
             "تقویم و برنامه‌ریزی"
         )
@@ -71,27 +75,20 @@ class WeeklyPlanner(QWidget):
             title
         )
 
-        # Week navigation
         navigation_layout = (
             QHBoxLayout()
         )
 
-        self.previous_button = (
-            QPushButton(
-                "هفته قبل"
-            )
+        self.previous_button = QPushButton(
+            "هفته قبل"
         )
 
-        self.today_button = (
-            QPushButton(
-                "امروز"
-            )
+        self.today_button = QPushButton(
+            "امروز"
         )
 
-        self.next_button = (
-            QPushButton(
-                "هفته بعد"
-            )
+        self.next_button = QPushButton(
+            "هفته بعد"
         )
 
         self.week_label = QLabel()
@@ -140,15 +137,10 @@ class WeeklyPlanner(QWidget):
             navigation_layout
         )
 
-        # Day cards
-        self.days_container = (
-            QWidget()
-        )
+        self.days_container = QWidget()
 
-        self.days_layout = (
-            QHBoxLayout(
-                self.days_container
-            )
+        self.days_layout = QHBoxLayout(
+            self.days_container
         )
 
         self.days_layout.setAlignment(
@@ -185,6 +177,10 @@ class WeeklyPlanner(QWidget):
             self.anchor_date
         )
 
+        ensure_recurring_instances_through(
+            week[-1].isoformat()
+        )
+
         self.week_label.setText(
             format_jalali_week_range(
                 week[0],
@@ -193,14 +189,10 @@ class WeeklyPlanner(QWidget):
         )
 
         for day in week:
-            card = (
+            self.days_layout.addWidget(
                 self.create_day_card(
                     day
                 )
-            )
-
-            self.days_layout.addWidget(
-                card
             )
 
     def create_day_card(
@@ -255,12 +247,6 @@ class WeeklyPlanner(QWidget):
             Qt.AlignmentFlag.AlignCenter
         )
 
-        date_label.setStyleSheet(
-            """
-            font-size: 14px;
-            """
-        )
-
         layout.addWidget(
             weekday_label
         )
@@ -297,12 +283,12 @@ class WeeklyPlanner(QWidget):
                 "برنامه‌ای ثبت نشده"
             )
 
-            empty_label.setWordWrap(
-                True
-            )
-
             empty_label.setAlignment(
                 Qt.AlignmentFlag.AlignCenter
+            )
+
+            empty_label.setWordWrap(
+                True
             )
 
             layout.addWidget(
@@ -355,12 +341,22 @@ class WeeklyPlanner(QWidget):
             2,
         )
 
+        title = task["title"]
+
+        if task["recurring_template_id"]:
+            title = (
+                "↻ "
+                + title
+            )
+
         checkbox = QCheckBox(
-            task["title"]
+            title
         )
 
         checkbox.setChecked(
-            bool(task["completed"])
+            bool(
+                task["completed"]
+            )
         )
 
         checkbox.toggled.connect(
@@ -436,10 +432,73 @@ class WeeklyPlanner(QWidget):
         if not dialog.exec():
             return
 
+        task_data = (
+            dialog.get_task_data()
+        )
+
+        recurrence_data = (
+            dialog.get_recurrence_data()
+        )
+
         try:
-            create_task(
-                **dialog.get_task_data()
-            )
+            if (
+                recurrence_data[
+                    "recurrence_type"
+                ]
+                == "none"
+            ):
+                create_task(
+                    **task_data
+                )
+
+            else:
+                template_id = (
+                    create_recurring_series(
+                        title=task_data[
+                            "title"
+                        ],
+                        description=task_data[
+                            "description"
+                        ],
+                        start_time=task_data[
+                            "start_time"
+                        ],
+                        end_time=task_data[
+                            "end_time"
+                        ],
+                        all_day=task_data[
+                            "all_day"
+                        ],
+                        priority=task_data[
+                            "priority"
+                        ],
+                        recurrence_type=(
+                            recurrence_data[
+                                "recurrence_type"
+                            ]
+                        ),
+                        recurrence_start_date=(
+                            task_data[
+                                "due_date"
+                            ]
+                        ),
+                        recurrence_weekdays=(
+                            recurrence_data[
+                                "recurrence_weekdays"
+                            ]
+                        ),
+                        recurrence_end_date=(
+                            recurrence_data[
+                                "recurrence_end_date"
+                            ]
+                        ),
+                    )
+                )
+
+                generate_recurring_instances(
+                    template_id,
+                    selected_day.isoformat(),
+                )
 
         except ValueError as error:
             QMessageBox.warning(
@@ -447,6 +506,7 @@ class WeeklyPlanner(QWidget):
                 "خطا",
                 str(error),
             )
+
             return
 
         self.refresh()
@@ -499,17 +559,13 @@ class WeeklyPlanner(QWidget):
     def clear_days(
         self,
     ):
-        while (
-            self.days_layout.count()
-        ):
+        while self.days_layout.count():
             item = (
                 self.days_layout
                 .takeAt(0)
             )
 
-            widget = (
-                item.widget()
-            )
+            widget = item.widget()
 
             if widget is not None:
                 widget.deleteLater()

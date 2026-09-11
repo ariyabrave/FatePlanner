@@ -28,12 +28,15 @@ def _validate_task_data(
             "Invalid task priority."
         )
 
-    if start_time and end_time:
-        if end_time <= start_time:
-            raise ValueError(
-                "End time must be later "
-                "than start time."
-            )
+    if (
+        start_time
+        and end_time
+        and end_time <= start_time
+    ):
+        raise ValueError(
+            "End time must be later "
+            "than start time."
+        )
 
 
 def create_task(
@@ -97,9 +100,13 @@ def create_task(
                 end_time,
                 all_day,
                 priority,
-                parent_id
+                parent_id,
+                is_recurring_template,
+                recurrence_type
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (
+                ?, ?, ?, ?, ?, ?, ?, ?, 0, 'none'
+            )
             """,
             (
                 title,
@@ -163,6 +170,12 @@ def get_task(
                 priority,
                 completed,
                 parent_id,
+                is_recurring_template,
+                recurrence_type,
+                recurrence_weekdays,
+                recurrence_start_date,
+                recurrence_end_date,
+                recurring_template_id,
                 created_at
             FROM tasks
             WHERE id = ?
@@ -191,9 +204,17 @@ def get_tasks(
                 priority,
                 completed,
                 parent_id,
+                is_recurring_template,
+                recurrence_type,
+                recurrence_weekdays,
+                recurrence_start_date,
+                recurrence_end_date,
+                recurring_template_id,
                 created_at
             FROM tasks
-            WHERE parent_id IS NULL
+            WHERE
+                parent_id IS NULL
+                AND is_recurring_template = 0
             ORDER BY
                 completed ASC,
                 CASE priority
@@ -202,6 +223,7 @@ def get_tasks(
                     WHEN 'low' THEN 3
                     ELSE 4
                 END ASC,
+                due_date ASC,
                 id DESC
             """
         ).fetchall()
@@ -228,11 +250,18 @@ def get_tasks_for_date(
                 priority,
                 completed,
                 parent_id,
+                is_recurring_template,
+                recurrence_type,
+                recurrence_weekdays,
+                recurrence_start_date,
+                recurrence_end_date,
+                recurring_template_id,
                 created_at
             FROM tasks
             WHERE
                 due_date = ?
                 AND parent_id IS NULL
+                AND is_recurring_template = 0
             ORDER BY
                 completed ASC,
                 all_day DESC,
@@ -310,7 +339,9 @@ def update_task(
                 end_time = ?,
                 all_day = ?,
                 priority = ?
-            WHERE id = ?
+            WHERE
+                id = ?
+                AND is_recurring_template = 0
             """,
             (
                 title,
@@ -345,7 +376,8 @@ def set_task_completed(
             """
             SELECT
                 id,
-                parent_id
+                parent_id,
+                is_recurring_template
             FROM tasks
             WHERE id = ?
             """,
@@ -353,6 +385,9 @@ def set_task_completed(
         ).fetchone()
 
         if task is None:
+            return
+
+        if task["is_recurring_template"]:
             return
 
         connection.execute(
@@ -367,9 +402,6 @@ def set_task_completed(
             ),
         )
 
-        # Parent task:
-        # completing/uncompleting it affects
-        # all direct subtasks.
         if task["parent_id"] is None:
             connection.execute(
                 """
@@ -387,8 +419,6 @@ def set_task_completed(
 
         parent_id = task["parent_id"]
 
-    # Subtask:
-    # recalculate parent completion.
     if parent_id is not None:
         _sync_parent_completion(
             parent_id,
@@ -429,8 +459,6 @@ def _sync_parent_completion(
             row["completed"] or 0
         )
 
-        # No subtasks = do not modify
-        # the parent's manual state.
         if total == 0:
             return
 
@@ -465,7 +493,9 @@ def delete_task(
 
         task = connection.execute(
             """
-            SELECT parent_id
+            SELECT
+                parent_id,
+                is_recurring_template
             FROM tasks
             WHERE id = ?
             """,
@@ -473,6 +503,9 @@ def delete_task(
         ).fetchone()
 
         if task is None:
+            return
+
+        if task["is_recurring_template"]:
             return
 
         parent_id = task["parent_id"]
@@ -527,12 +560,13 @@ def get_subtask_progress(
         row["completed"] or 0
     )
 
-    if total:
-        percentage = round(
+    percentage = (
+        round(
             completed / total * 100
         )
-    else:
-        percentage = 0
+        if total
+        else 0
+    )
 
     return (
         total,
@@ -560,7 +594,9 @@ def get_task_progress(
                     END
                 ) AS completed
             FROM tasks
-            WHERE parent_id IS NULL
+            WHERE
+                parent_id IS NULL
+                AND is_recurring_template = 0
             """
         ).fetchone()
 
@@ -610,6 +646,7 @@ def get_task_progress_for_date(
             WHERE
                 due_date = ?
                 AND parent_id IS NULL
+                AND is_recurring_template = 0
             """,
             (date,),
         ).fetchone()

@@ -21,6 +21,11 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from fateplanner.services.recurrence_service import (
+    create_recurring_series,
+    ensure_recurring_instances_through,
+    generate_recurring_instances,
+)
 from fateplanner.services.task_service import (
     create_subtask,
     create_task,
@@ -84,7 +89,6 @@ class MainWindow(QMainWindow):
             central_widget
         )
 
-        # Sidebar
         self.sidebar = QListWidget()
 
         self.sidebar.setFixedWidth(
@@ -105,7 +109,6 @@ class MainWindow(QMainWindow):
             ]
         )
 
-        # Pages
         self.pages = QStackedWidget()
 
         self.home_page = (
@@ -168,10 +171,6 @@ class MainWindow(QMainWindow):
         )
 
         self.refresh_all()
-
-    # =========================
-    # Navigation
-    # =========================
 
     def change_page(
         self,
@@ -365,12 +364,6 @@ class MainWindow(QMainWindow):
 
         self.today_date_label = QLabel()
 
-        self.today_date_label.setStyleSheet(
-            """
-            font-size: 16px;
-            """
-        )
-
         layout.addWidget(
             title
         )
@@ -380,16 +373,6 @@ class MainWindow(QMainWindow):
         )
 
         progress_frame = QFrame()
-
-        progress_frame.setStyleSheet(
-            """
-            QFrame {
-                border: 1px solid #d0d0d0;
-                border-radius: 10px;
-                padding: 10px;
-            }
-            """
-        )
 
         progress_layout = QVBoxLayout(
             progress_frame
@@ -492,10 +475,6 @@ class MainWindow(QMainWindow):
 
         return page
 
-    # =========================
-    # Placeholder pages
-    # =========================
-
     def create_placeholder_page(
         self,
         page_name: str,
@@ -534,7 +513,7 @@ class MainWindow(QMainWindow):
         return page
 
     # =========================
-    # New tasks
+    # Create task
     # =========================
 
     def open_general_task_dialog(
@@ -566,10 +545,75 @@ class MainWindow(QMainWindow):
         self,
         dialog: TaskDialog,
     ):
+        task_data = (
+            dialog.get_task_data()
+        )
+
+        recurrence_data = (
+            dialog.get_recurrence_data()
+        )
+
         try:
-            create_task(
-                **dialog.get_task_data()
-            )
+            if (
+                recurrence_data[
+                    "recurrence_type"
+                ]
+                == "none"
+            ):
+                create_task(
+                    **task_data
+                )
+
+            else:
+                template_id = (
+                    create_recurring_series(
+                        title=task_data[
+                            "title"
+                        ],
+                        description=task_data[
+                            "description"
+                        ],
+                        start_time=task_data[
+                            "start_time"
+                        ],
+                        end_time=task_data[
+                            "end_time"
+                        ],
+                        all_day=task_data[
+                            "all_day"
+                        ],
+                        priority=task_data[
+                            "priority"
+                        ],
+                        recurrence_type=(
+                            recurrence_data[
+                                "recurrence_type"
+                            ]
+                        ),
+                        recurrence_start_date=(
+                            task_data[
+                                "due_date"
+                            ]
+                        ),
+                        recurrence_weekdays=(
+                            recurrence_data[
+                                "recurrence_weekdays"
+                            ]
+                        ),
+                        recurrence_end_date=(
+                            recurrence_data[
+                                "recurrence_end_date"
+                            ]
+                        ),
+                    )
+                )
+
+                generate_recurring_instances(
+                    template_id,
+                    task_data[
+                        "due_date"
+                    ],
+                )
 
         except ValueError as error:
             QMessageBox.warning(
@@ -583,7 +627,7 @@ class MainWindow(QMainWindow):
         self.refresh_all()
 
     # =========================
-    # Edit tasks
+    # Editing
     # =========================
 
     def edit_task(
@@ -637,12 +681,10 @@ class MainWindow(QMainWindow):
         if not dialog.exec():
             return
 
-        data = dialog.get_data()
-
         try:
             create_subtask(
                 parent_id=parent_id,
-                **data,
+                **dialog.get_data(),
             )
 
         except ValueError as error:
@@ -663,6 +705,10 @@ class MainWindow(QMainWindow):
     def refresh_all(
         self,
     ):
+        ensure_recurring_instances_through(
+            date.today().isoformat()
+        )
+
         self.refresh_home()
         self.refresh_today()
 
@@ -727,6 +773,10 @@ class MainWindow(QMainWindow):
 
         today = (
             today_date.isoformat()
+        )
+
+        ensure_recurring_instances_through(
+            today
         )
 
         self.today_date_label.setText(
@@ -811,16 +861,24 @@ class MainWindow(QMainWindow):
             frame
         )
 
-        top_layout = QHBoxLayout()
-
         content_layout = QVBoxLayout()
 
+        title = task["title"]
+
+        if task["recurring_template_id"]:
+            title = (
+                "↻ "
+                + title
+            )
+
         checkbox = QCheckBox(
-            task["title"]
+            title
         )
 
         checkbox.setChecked(
-            bool(task["completed"])
+            bool(
+                task["completed"]
+            )
         )
 
         font = QFont()
@@ -862,6 +920,11 @@ class MainWindow(QMainWindow):
             f"اولویت: {priority}"
         )
 
+        if task["recurring_template_id"]:
+            details.append(
+                "تکرارشونده"
+            )
+
         if show_schedule:
             if task["all_day"]:
                 details.append(
@@ -901,13 +964,13 @@ class MainWindow(QMainWindow):
             except ValueError:
                 pass
 
-        details_label = QLabel(
+        detail_label = QLabel(
             " | ".join(
                 details
             )
         )
 
-        details_label.setStyleSheet(
+        detail_label.setStyleSheet(
             """
             font-size: 12px;
             color: #777;
@@ -915,7 +978,7 @@ class MainWindow(QMainWindow):
         )
 
         content_layout.addWidget(
-            details_label
+            detail_label
         )
 
         if task["description"]:
@@ -927,27 +990,14 @@ class MainWindow(QMainWindow):
                 True
             )
 
-            description.setStyleSheet(
-                """
-                font-size: 13px;
-                color: #555;
-                """
-            )
-
             content_layout.addWidget(
                 description
             )
 
-        top_layout.addLayout(
-            content_layout,
-            1,
-        )
-
         outer_layout.addLayout(
-            top_layout
+            content_layout
         )
 
-        # Subtasks
         subtasks = get_subtasks(
             task["id"]
         )
@@ -967,13 +1017,6 @@ class MainWindow(QMainWindow):
                 f"{subtask_total}"
             )
 
-            progress_label.setStyleSheet(
-                """
-                font-weight: bold;
-                margin-top: 5px;
-                """
-            )
-
             outer_layout.addWidget(
                 progress_label
             )
@@ -989,10 +1032,6 @@ class MainWindow(QMainWindow):
                 subtask_percentage
             )
 
-            subtask_progress.setMaximumHeight(
-                18
-            )
-
             outer_layout.addWidget(
                 subtask_progress
             )
@@ -1004,7 +1043,6 @@ class MainWindow(QMainWindow):
                     )
                 )
 
-        # Buttons
         buttons = QHBoxLayout()
 
         edit_button = QPushButton(
@@ -1167,22 +1205,16 @@ class MainWindow(QMainWindow):
 
         self.refresh_all()
 
-    # =========================
-    # Helpers
-    # =========================
-
     def clear_layout(
         self,
         layout,
     ):
         while layout.count():
-            item = (
-                layout.takeAt(0)
+            item = layout.takeAt(
+                0
             )
 
-            widget = (
-                item.widget()
-            )
+            widget = item.widget()
 
             if widget is not None:
                 widget.deleteLater()
