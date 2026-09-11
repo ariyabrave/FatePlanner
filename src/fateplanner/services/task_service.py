@@ -14,6 +14,9 @@ def create_task(
     title: str,
     description: str = "",
     due_date: str | None = None,
+    start_time: str | None = None,
+    end_time: str | None = None,
+    all_day: bool = False,
     priority: str = "normal",
     database_path: str | Path | None = None,
 ) -> int:
@@ -26,6 +29,12 @@ def create_task(
     if priority not in VALID_PRIORITIES:
         raise ValueError("Invalid task priority.")
 
+    if start_time and end_time:
+        if end_time <= start_time:
+            raise ValueError(
+                "End time must be later than start time."
+            )
+
     with get_connection(database_path) as connection:
         cursor = connection.execute(
             """
@@ -33,14 +42,20 @@ def create_task(
                 title,
                 description,
                 due_date,
+                start_time,
+                end_time,
+                all_day,
                 priority
             )
-            VALUES (?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 title,
                 description,
                 due_date,
+                start_time,
+                end_time,
+                int(all_day),
                 priority,
             ),
         )
@@ -61,6 +76,9 @@ def get_tasks(
                 title,
                 description,
                 due_date,
+                start_time,
+                end_time,
+                all_day,
                 priority,
                 completed,
                 created_at
@@ -72,9 +90,39 @@ def get_tasks(
                     WHEN 'normal' THEN 2
                     WHEN 'low' THEN 3
                     ELSE 4
-                END,
+                END ASC,
                 id DESC
             """
+        ).fetchall()
+
+
+def get_tasks_for_date(
+    date: str,
+    database_path: str | Path | None = None,
+):
+    with get_connection(database_path) as connection:
+        return connection.execute(
+            """
+            SELECT
+                id,
+                title,
+                description,
+                due_date,
+                start_time,
+                end_time,
+                all_day,
+                priority,
+                completed,
+                created_at
+            FROM tasks
+            WHERE due_date = ?
+            ORDER BY
+                completed ASC,
+                all_day DESC,
+                start_time ASC,
+                id ASC
+            """,
+            (date,),
         ).fetchall()
 
 
@@ -136,9 +184,43 @@ def get_task_progress(
     total = int(row["total"])
     completed = int(row["completed"] or 0)
 
-    if total == 0:
-        percentage = 0
-    else:
-        percentage = round((completed / total) * 100)
+    percentage = (
+        round((completed / total) * 100)
+        if total > 0
+        else 0
+    )
+
+    return total, completed, percentage
+
+
+def get_task_progress_for_date(
+    date: str,
+    database_path: str | Path | None = None,
+) -> tuple[int, int, int]:
+    with get_connection(database_path) as connection:
+        row = connection.execute(
+            """
+            SELECT
+                COUNT(*) AS total,
+                SUM(
+                    CASE
+                        WHEN completed = 1 THEN 1
+                        ELSE 0
+                    END
+                ) AS completed
+            FROM tasks
+            WHERE due_date = ?
+            """,
+            (date,),
+        ).fetchone()
+
+    total = int(row["total"])
+    completed = int(row["completed"] or 0)
+
+    percentage = (
+        round((completed / total) * 100)
+        if total > 0
+        else 0
+    )
 
     return total, completed, percentage

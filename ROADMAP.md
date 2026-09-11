@@ -22,17 +22,17 @@
 - [x] Progress calculation
 - [x] Automated tests
 
-## ⏳ Milestone 2 — Daily Planner
+## ✅ Milestone 2 — Daily Planner
 
-- [ ] Today screen
-- [ ] Filter tasks by date
-- [ ] Start time
-- [ ] End time
-- [ ] All-day tasks
-- [ ] Daily schedule
-- [ ] Daily progress
-- [ ] Empty-day state
-- [ ] Tests
+- [x] Today screen
+- [x] Filter tasks by date
+- [x] Start time
+- [x] End time
+- [x] All-day tasks
+- [x] Daily schedule
+- [x] Daily progress
+- [x] Empty-day state
+- [x] Tests
 
 ## Milestone 3 — Jalali Calendar + Weekly Planner
 

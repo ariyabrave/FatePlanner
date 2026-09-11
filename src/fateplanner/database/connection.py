@@ -40,11 +40,39 @@ def initialize_database(
                 title TEXT NOT NULL,
                 description TEXT,
                 due_date TEXT,
+                start_time TEXT,
+                end_time TEXT,
+                all_day INTEGER NOT NULL DEFAULT 0,
                 priority TEXT NOT NULL DEFAULT 'normal',
                 completed INTEGER NOT NULL DEFAULT 0,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """
         )
+
+        columns = {
+            row["name"]
+            for row in connection.execute(
+                "PRAGMA table_info(tasks)"
+            ).fetchall()
+        }
+
+        if "start_time" not in columns:
+            connection.execute(
+                "ALTER TABLE tasks ADD COLUMN start_time TEXT"
+            )
+
+        if "end_time" not in columns:
+            connection.execute(
+                "ALTER TABLE tasks ADD COLUMN end_time TEXT"
+            )
+
+        if "all_day" not in columns:
+            connection.execute(
+                """
+                ALTER TABLE tasks
+                ADD COLUMN all_day INTEGER NOT NULL DEFAULT 0
+                """
+            )
 
         connection.commit()
