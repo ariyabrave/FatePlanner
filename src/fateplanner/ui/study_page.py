@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
     QProgressBar,
     QPushButton,
     QScrollArea,
+    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -55,6 +56,10 @@ class StudyPage(QWidget):
             self
         )
 
+        # ==================================
+        # Header
+        # ==================================
+
         title = QLabel(
             "مطالعه"
         )
@@ -68,6 +73,13 @@ class StudyPage(QWidget):
 
         self.date_label = QLabel()
 
+        self.date_label.setStyleSheet(
+            """
+            font-size: 15px;
+            color: #666;
+            """
+        )
+
         self.main_layout.addWidget(
             title
         )
@@ -77,10 +89,88 @@ class StudyPage(QWidget):
         )
 
         # ==================================
-        # Daily study stats
+        # Tabs
         # ==================================
 
+        self.tabs = QTabWidget()
+
+        self.tabs.setDocumentMode(
+            True
+        )
+
+        self.tabs.setStyleSheet(
+            """
+            QTabBar::tab {
+                min-width: 150px;
+                min-height: 36px;
+                padding: 6px 14px;
+                font-size: 14px;
+            }
+            """
+        )
+
+        self.planner_tab = (
+            self.create_planner_tab()
+        )
+
+        self.timer_tab = (
+            self.create_timer_tab()
+        )
+
+        self.analytics_tab = (
+            self.create_analytics_tab()
+        )
+
+        self.tabs.addTab(
+            self.planner_tab,
+            "برنامه مطالعه",
+        )
+
+        self.tabs.addTab(
+            self.timer_tab,
+            "تایمر تمرکز",
+        )
+
+        self.tabs.addTab(
+            self.analytics_tab,
+            "تاریخچه و آمار",
+        )
+
+        self.main_layout.addWidget(
+            self.tabs,
+            1,
+        )
+
+        self.refresh()
+
+    # ==================================
+    # Planner tab
+    # ==================================
+
+    def create_planner_tab(
+        self,
+    ) -> QWidget:
+        tab = QWidget()
+
+        outer_layout = QVBoxLayout(
+            tab
+        )
+
+        # ----------------------------------
+        # Daily study stats
+        # ----------------------------------
+
         stats_frame = QFrame()
+
+        stats_frame.setStyleSheet(
+            """
+            QFrame {
+                border: 1px solid #d8d8d8;
+                border-radius: 10px;
+                padding: 8px;
+            }
+            """
+        )
 
         stats_layout = QVBoxLayout(
             stats_frame
@@ -97,7 +187,9 @@ class StudyPage(QWidget):
             """
         )
 
-        self.progress_bar = QProgressBar()
+        self.progress_bar = (
+            QProgressBar()
+        )
 
         self.progress_bar.setRange(
             0,
@@ -124,28 +216,13 @@ class StudyPage(QWidget):
             self.time_details
         )
 
-        self.main_layout.addWidget(
+        outer_layout.addWidget(
             stats_frame
         )
 
-        # ==================================
-        # Focus timer
-        # ==================================
-
-        self.focus_timer = FocusTimerWidget(
-            self,
-            on_data_changed=(
-                self.refresh_after_timer_change
-            ),
-        )
-
-        self.main_layout.addWidget(
-            self.focus_timer
-        )
-
-        # ==================================
+        # ----------------------------------
         # Add buttons
-        # ==================================
+        # ----------------------------------
 
         button_layout = QHBoxLayout()
 
@@ -181,13 +258,31 @@ class StudyPage(QWidget):
             add_session_button
         )
 
-        self.main_layout.addLayout(
+        outer_layout.addLayout(
             button_layout
         )
 
-        # ==================================
-        # Subjects
-        # ==================================
+        # ----------------------------------
+        # Main planner content
+        # ----------------------------------
+
+        content_layout = QHBoxLayout()
+
+        # Subjects column
+        subjects_frame = QFrame()
+
+        subjects_frame.setStyleSheet(
+            """
+            QFrame {
+                border: 1px solid #d8d8d8;
+                border-radius: 10px;
+            }
+            """
+        )
+
+        subjects_layout = QVBoxLayout(
+            subjects_frame
+        )
 
         subjects_title = QLabel(
             "موضوع‌های مطالعه"
@@ -195,13 +290,12 @@ class StudyPage(QWidget):
 
         subjects_title.setStyleSheet(
             """
-            font-size: 19px;
+            font-size: 18px;
             font-weight: bold;
-            margin-top: 8px;
             """
         )
 
-        self.main_layout.addWidget(
+        subjects_layout.addWidget(
             subjects_title
         )
 
@@ -221,21 +315,30 @@ class StudyPage(QWidget):
             True
         )
 
-        subjects_scroll.setMaximumHeight(
-            210
-        )
-
         subjects_scroll.setWidget(
             self.subjects_container
         )
 
-        self.main_layout.addWidget(
-            subjects_scroll
+        subjects_layout.addWidget(
+            subjects_scroll,
+            1,
         )
 
-        # ==================================
-        # Today's sessions
-        # ==================================
+        # Sessions column
+        sessions_frame = QFrame()
+
+        sessions_frame.setStyleSheet(
+            """
+            QFrame {
+                border: 1px solid #d8d8d8;
+                border-radius: 10px;
+            }
+            """
+        )
+
+        sessions_layout = QVBoxLayout(
+            sessions_frame
+        )
 
         sessions_title = QLabel(
             "برنامه مطالعه امروز"
@@ -243,13 +346,12 @@ class StudyPage(QWidget):
 
         sessions_title.setStyleSheet(
             """
-            font-size: 19px;
+            font-size: 18px;
             font-weight: bold;
-            margin-top: 8px;
             """
         )
 
-        self.main_layout.addWidget(
+        sessions_layout.addWidget(
             sessions_title
         )
 
@@ -273,12 +375,117 @@ class StudyPage(QWidget):
             self.sessions_container
         )
 
-        self.main_layout.addWidget(
+        sessions_layout.addWidget(
             sessions_scroll,
             1,
         )
 
-        self.refresh()
+        content_layout.addWidget(
+            subjects_frame,
+            1,
+        )
+
+        content_layout.addWidget(
+            sessions_frame,
+            2,
+        )
+
+        outer_layout.addLayout(
+            content_layout,
+            1,
+        )
+
+        return tab
+
+    # ==================================
+    # Timer tab
+    # ==================================
+
+    def create_timer_tab(
+        self,
+    ) -> QWidget:
+        tab = QWidget()
+
+        layout = QVBoxLayout(
+            tab
+        )
+
+        self.focus_timer = FocusTimerWidget(
+            self,
+            on_data_changed=(
+                self.refresh_after_timer_change
+            ),
+        )
+
+        layout.addWidget(
+            self.focus_timer
+        )
+
+        layout.addStretch()
+
+        return tab
+
+    # ==================================
+    # Analytics tab
+    # ==================================
+
+    def create_analytics_tab(
+        self,
+    ) -> QWidget:
+        tab = QWidget()
+
+        layout = QVBoxLayout(
+            tab
+        )
+
+        title = QLabel(
+            "تاریخچه و آمار مطالعه"
+        )
+
+        title.setStyleSheet(
+            """
+            font-size: 22px;
+            font-weight: bold;
+            """
+        )
+
+        message = QLabel(
+            "این بخش در Milestone 6C ساخته می‌شود.\n\n"
+            "در این قسمت تاریخچه مطالعه، مجموع زمان روزانه و هفتگی، "
+            "آمار هر موضوع و مقایسه زمان برنامه‌ریزی‌شده با زمان واقعی "
+            "نمایش داده خواهد شد."
+        )
+
+        message.setWordWrap(
+            True
+        )
+
+        message.setAlignment(
+            Qt.AlignmentFlag.AlignCenter
+        )
+
+        message.setStyleSheet(
+            """
+            font-size: 16px;
+            padding: 40px;
+            color: #666;
+            """
+        )
+
+        layout.addWidget(
+            title
+        )
+
+        layout.addWidget(
+            message,
+            1,
+        )
+
+        return tab
+
+    # ==================================
+    # Refresh
+    # ==================================
 
     def refresh(
         self,
@@ -373,11 +580,9 @@ class StudyPage(QWidget):
             """
         )
 
-        layout = QHBoxLayout(
+        layout = QVBoxLayout(
             frame
         )
-
-        text_layout = QVBoxLayout()
 
         name = QLabel(
             subject["name"]
@@ -390,7 +595,7 @@ class StudyPage(QWidget):
             """
         )
 
-        text_layout.addWidget(
+        layout.addWidget(
             name
         )
 
@@ -403,9 +608,17 @@ class StudyPage(QWidget):
                 True
             )
 
-            text_layout.addWidget(
+            description.setStyleSheet(
+                """
+                color: #666;
+                """
+            )
+
+            layout.addWidget(
                 description
             )
+
+        actions = QHBoxLayout()
 
         edit_button = QPushButton(
             "ویرایش"
@@ -431,17 +644,16 @@ class StudyPage(QWidget):
             )
         )
 
-        layout.addLayout(
-            text_layout,
-            1,
-        )
-
-        layout.addWidget(
+        actions.addWidget(
             edit_button
         )
 
-        layout.addWidget(
+        actions.addWidget(
             delete_button
+        )
+
+        layout.addLayout(
+            actions
         )
 
         return frame
