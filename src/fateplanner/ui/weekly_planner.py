@@ -219,7 +219,7 @@ class WeeklyPlanner(QWidget):
         frame.setStyleSheet(
             """
             QFrame {
-                border: 1px solid #d8d8d8;
+                border: 1px solid palette(mid);
                 border-radius: 10px;
                 padding: 8px;
             }
@@ -409,7 +409,7 @@ class WeeklyPlanner(QWidget):
         schedule_label.setStyleSheet(
             """
             font-size: 11px;
-            color: #777;
+            color: palette(window-text);
             """
         )
 

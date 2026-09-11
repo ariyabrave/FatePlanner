@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from fateplanner.ui.theme import theme_hex
 from fateplanner.services.finance_service import (
     create_finance_budget,
     create_finance_category,
@@ -246,7 +247,7 @@ class FinancePage(QWidget):
         summary_frame.setStyleSheet(
             """
             QFrame {
-                border: 1px solid #d8d8d8;
+                border: 1px solid palette(mid);
                 border-radius: 10px;
                 padding: 8px;
             }
@@ -354,6 +355,27 @@ class FinancePage(QWidget):
                 "توضیحات",
                 "عملیات",
             ]
+        )
+
+        # FatePlanner finance action sizing
+        self.transaction_table.verticalHeader().setMinimumSectionSize(
+            48
+        )
+
+        self.transaction_table.verticalHeader().setDefaultSectionSize(
+            50
+        )
+
+        action_header = self.transaction_table.horizontalHeader()
+
+        action_header.setSectionResizeMode(
+            5,
+            action_header.ResizeMode.Fixed,
+        )
+
+        self.transaction_table.setColumnWidth(
+            5,
+            190,
         )
 
         self.transaction_table.setEditTriggers(
@@ -481,7 +503,7 @@ class FinancePage(QWidget):
         overview_frame.setStyleSheet(
             """
             QFrame {
-                border: 1px solid #d8d8d8;
+                border: 1px solid palette(mid);
                 border-radius: 10px;
                 padding: 8px;
             }
@@ -974,7 +996,7 @@ class FinancePage(QWidget):
             label.setStyleSheet(
                 """
                 padding: 25px;
-                color: #777;
+                color: palette(window-text);
                 """
             )
 
@@ -1002,11 +1024,11 @@ class FinancePage(QWidget):
         frame = QFrame()
 
         if status["overspent"]:
-            border = "#c85a5a"
+            border = theme_hex("danger")
         elif status["percentage"] >= 80:
-            border = "#d2a23b"
+            border = theme_hex("warning")
         else:
-            border = "#8a8a8a"
+            border = "palette(mid)"
 
         frame.setStyleSheet(
             f"""
@@ -1311,7 +1333,7 @@ class FinancePage(QWidget):
         frame.setStyleSheet(
             """
             QFrame {
-                border: 1px solid #d8d8d8;
+                border: 1px solid palette(mid);
                 border-radius: 8px;
                 padding: 6px;
             }

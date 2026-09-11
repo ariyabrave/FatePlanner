@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from fateplanner.ui.theme import theme_hex
 from fateplanner.services.habit_service import (
     get_habit,
     get_habit_logs_between,
@@ -461,9 +462,9 @@ class HabitHistoryDialog(QDialog):
                 False
             )
 
-            background = "#f2f2f2"
-            border = "#dddddd"
-            text_color = "#999999"
+            background = theme_hex("surface_alt")
+            border = theme_hex("border")
+            text_color = theme_hex("muted")
 
         elif is_future:
             symbol = "…"
@@ -472,16 +473,16 @@ class HabitHistoryDialog(QDialog):
                 False
             )
 
-            background = "#f5f5f5"
-            border = "#dddddd"
-            text_color = "#888888"
+            background = theme_hex("surface_alt")
+            border = theme_hex("border")
+            text_color = theme_hex("muted")
 
         elif completed:
             symbol = "✓"
 
-            background = "#dff3e3"
-            border = "#75b882"
-            text_color = "#245d32"
+            background = theme_hex("success_bg")
+            border = theme_hex("success")
+            text_color = theme_hex("success")
 
             button.clicked.connect(
                 lambda _,
@@ -494,9 +495,9 @@ class HabitHistoryDialog(QDialog):
         else:
             symbol = "×"
 
-            background = "#f8e2e2"
-            border = "#cf8b8b"
-            text_color = "#7d3030"
+            background = theme_hex("danger_bg")
+            border = theme_hex("danger")
+            text_color = theme_hex("danger")
 
             button.clicked.connect(
                 lambda _,
@@ -508,7 +509,7 @@ class HabitHistoryDialog(QDialog):
 
         if is_today:
             border_rule = (
-                "2px solid #6666cc"
+                f"2px solid {theme_hex('accent')}"
             )
         else:
             border_rule = (

@@ -22,6 +22,10 @@ from PySide6.QtWidgets import (
 from fateplanner.database.connection import (
     get_database_path,
 )
+from fateplanner.ui.appearance_settings_widget import (
+    AppearanceSettingsWidget,
+)
+
 from fateplanner.services.backup_service import (
     create_backup,
     export_csv_bundle,
@@ -72,16 +76,30 @@ class SettingsPage(QWidget):
             description
         )
 
+        self.appearance_widget = (
+            AppearanceSettingsWidget(
+                self
+            )
+        )
+
+        layout.addWidget(
+            self.appearance_widget
+        )
+
         # ==================================
         # Database information
         # ==================================
 
         info_frame = QFrame()
 
+        info_frame.setObjectName(
+            "settingsCard"
+        )
+
         info_frame.setStyleSheet(
             """
-            QFrame {
-                border: 1px solid #d8d8d8;
+            QFrame#settingsCard {
+                border: 1px solid palette(mid);
                 border-radius: 10px;
                 padding: 10px;
             }
@@ -149,10 +167,14 @@ class SettingsPage(QWidget):
 
         backup_frame = QFrame()
 
+        backup_frame.setObjectName(
+            "settingsCard"
+        )
+
         backup_frame.setStyleSheet(
             """
-            QFrame {
-                border: 1px solid #d8d8d8;
+            QFrame#settingsCard {
+                border: 1px solid palette(mid);
                 border-radius: 10px;
                 padding: 10px;
             }
@@ -232,10 +254,14 @@ class SettingsPage(QWidget):
 
         export_frame = QFrame()
 
+        export_frame.setObjectName(
+            "settingsCard"
+        )
+
         export_frame.setStyleSheet(
             """
-            QFrame {
-                border: 1px solid #d8d8d8;
+            QFrame#settingsCard {
+                border: 1px solid palette(mid);
                 border-radius: 10px;
                 padding: 10px;
             }

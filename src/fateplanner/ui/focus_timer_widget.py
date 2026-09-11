@@ -82,7 +82,7 @@ class FocusTimerWidget(QFrame):
         self.setStyleSheet(
             """
             QFrame {
-                border: 1px solid #d0d0d0;
+                border: 1px solid palette(mid);
                 border-radius: 12px;
                 padding: 10px;
             }

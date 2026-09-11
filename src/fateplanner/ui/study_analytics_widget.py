@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from fateplanner.ui.theme import theme_color
 from fateplanner.services.study_analytics_service import (
     get_study_daily_totals_between,
     get_study_sessions_between,
@@ -174,9 +175,7 @@ class StudyBarChart(QWidget):
 
         # Axes
         axis_pen = QPen(
-            QColor(
-                "#888888"
-            )
+            theme_color("muted")
         )
 
         painter.setPen(
@@ -234,9 +233,7 @@ class StudyBarChart(QWidget):
             )
 
             guide_pen = QPen(
-                QColor(
-                    "#dddddd"
-                )
+                theme_color("grid")
             )
 
             painter.setPen(
@@ -251,9 +248,7 @@ class StudyBarChart(QWidget):
             )
 
             painter.setPen(
-                QColor(
-                    "#666666"
-                )
+                theme_color("muted")
             )
 
             painter.drawText(
@@ -342,16 +337,12 @@ class StudyBarChart(QWidget):
 
             painter.fillRect(
                 planned_rect,
-                QColor(
-                    "#8fa8ff"
-                ),
+                theme_color("accent"),
             )
 
             painter.fillRect(
                 actual_rect,
-                QColor(
-                    "#67b77a"
-                ),
+                theme_color("success"),
             )
 
             row_date = (
@@ -369,9 +360,7 @@ class StudyBarChart(QWidget):
             )
 
             painter.setPen(
-                QColor(
-                    "#555555"
-                )
+                theme_color("text")
             )
 
             painter.drawText(
@@ -403,9 +392,7 @@ class StudyBarChart(QWidget):
                 12,
                 12,
             ),
-            QColor(
-                "#8fa8ff"
-            ),
+            theme_color("accent"),
         )
 
         painter.drawText(
@@ -426,9 +413,7 @@ class StudyBarChart(QWidget):
                 12,
                 12,
             ),
-            QColor(
-                "#67b77a"
-            ),
+            theme_color("success"),
         )
 
         painter.drawText(

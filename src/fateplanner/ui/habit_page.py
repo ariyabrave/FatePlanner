@@ -258,7 +258,7 @@ class HabitPage(QWidget):
         frame.setStyleSheet(
             """
             QFrame {
-                border: 1px solid #d8d8d8;
+                border: 1px solid palette(mid);
                 border-radius: 10px;
                 padding: 8px;
             }
@@ -306,7 +306,7 @@ class HabitPage(QWidget):
         schedule.setStyleSheet(
             """
             font-size: 12px;
-            color: #777;
+            color: palette(window-text);
             """
         )
 
@@ -357,7 +357,7 @@ class HabitPage(QWidget):
 
             not_today.setStyleSheet(
                 """
-                color: #777;
+                color: palette(window-text);
                 font-size: 12px;
                 """
             )

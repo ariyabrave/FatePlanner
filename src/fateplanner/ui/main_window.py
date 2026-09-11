@@ -43,6 +43,9 @@ from fateplanner.services.task_service import (
     set_task_completed,
     update_task,
 )
+from fateplanner.ui.task_center_page import (
+    TaskCenterPage,
+)
 from fateplanner.ui.analytics_page import (
     AnalyticsPage,
 )
@@ -86,6 +89,28 @@ PRIORITY_LABELS = {
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+
+        # FatePlanner resizable window
+        self.setMinimumSize(
+            960,
+            640,
+        )
+
+        self.resize(
+            1400,
+            900,
+        )
+
+        self.setWindowFlag(
+            Qt.WindowType.WindowMinimizeButtonHint,
+            True,
+        )
+
+        self.setWindowFlag(
+            Qt.WindowType.WindowMaximizeButtonHint,
+            True,
+        )
+
 
         self.setWindowTitle(
             "FatePlanner"
@@ -152,11 +177,7 @@ class MainWindow(QMainWindow):
             ),
         )
 
-        self.tasks_page = (
-            self.create_placeholder_page(
-                "کارها"
-            )
-        )
+        self.task_center_page = TaskCenterPage()
 
         self.habits_page = HabitPage()
 
@@ -181,7 +202,7 @@ class MainWindow(QMainWindow):
         )
 
         self.pages.addWidget(
-            self.tasks_page
+            self.task_center_page
         )
 
         self.pages.addWidget(
@@ -252,6 +273,9 @@ class MainWindow(QMainWindow):
 
         elif index == 2:
             self.weekly_page.refresh()
+
+        elif index == 3:
+            self.task_center_page.refresh()
 
         elif index == 4:
             self.habits_page.refresh()
@@ -1009,7 +1033,7 @@ class MainWindow(QMainWindow):
         frame.setStyleSheet(
             """
             QFrame {
-                border: 1px solid #d8d8d8;
+                border: 1px solid palette(mid);
                 border-radius: 8px;
                 padding: 8px;
             }
@@ -1128,7 +1152,7 @@ class MainWindow(QMainWindow):
         detail_label.setStyleSheet(
             """
             font-size: 12px;
-            color: #777;
+            color: palette(window-text);
             """
         )
 

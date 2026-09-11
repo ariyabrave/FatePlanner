@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from fateplanner.ui.theme import theme_hex
 from fateplanner.services.finance_service import (
     format_money,
 )
@@ -56,7 +57,7 @@ class SavingsGoalsWidget(QWidget):
         overview_frame.setStyleSheet(
             """
             QFrame {
-                border: 1px solid #d8d8d8;
+                border: 1px solid palette(mid);
                 border-radius: 10px;
                 padding: 8px;
             }
@@ -248,7 +249,7 @@ class SavingsGoalsWidget(QWidget):
             label.setStyleSheet(
                 """
                 padding: 30px;
-                color: #777;
+                color: palette(window-text);
                 """
             )
 
@@ -272,9 +273,9 @@ class SavingsGoalsWidget(QWidget):
         frame = QFrame()
 
         border = (
-            "#68a875"
+            theme_hex("success")
             if goal["completed"]
-            else "#d0d0d0"
+            else theme_hex("border")
         )
 
         frame.setStyleSheet(

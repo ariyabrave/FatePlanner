@@ -9,8 +9,15 @@ from fateplanner.database.connection import (
 from fateplanner.services.backup_service import (
     create_automatic_backup,
 )
+from fateplanner.ui.semantic_ui import (
+    install_semantic_ui,
+)
 from fateplanner.ui.main_window import (
     MainWindow,
+)
+
+from fateplanner.ui.theme import (
+    apply_appearance,
 )
 
 
@@ -41,6 +48,14 @@ def main():
 
     app.setLayoutDirection(
         Qt.LayoutDirection.RightToLeft
+    )
+
+    apply_appearance(
+        app
+    )
+
+    semantic_ui = install_semantic_ui(
+        app
     )
 
     window = MainWindow()

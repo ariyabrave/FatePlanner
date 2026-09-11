@@ -79,7 +79,7 @@ class StudyPage(QWidget):
         self.date_label.setStyleSheet(
             """
             font-size: 15px;
-            color: #666;
+            color: palette(window-text);
             """
         )
 
@@ -168,7 +168,7 @@ class StudyPage(QWidget):
         stats_frame.setStyleSheet(
             """
             QFrame {
-                border: 1px solid #d8d8d8;
+                border: 1px solid palette(mid);
                 border-radius: 10px;
                 padding: 8px;
             }
@@ -270,7 +270,7 @@ class StudyPage(QWidget):
         subjects_frame.setStyleSheet(
             """
             QFrame {
-                border: 1px solid #d8d8d8;
+                border: 1px solid palette(mid);
                 border-radius: 10px;
             }
             """
@@ -329,7 +329,7 @@ class StudyPage(QWidget):
         sessions_frame.setStyleSheet(
             """
             QFrame {
-                border: 1px solid #d8d8d8;
+                border: 1px solid palette(mid);
                 border-radius: 10px;
             }
             """
@@ -555,7 +555,7 @@ class StudyPage(QWidget):
         frame.setStyleSheet(
             """
             QFrame {
-                border: 1px solid #d8d8d8;
+                border: 1px solid palette(mid);
                 border-radius: 8px;
                 padding: 6px;
             }
@@ -592,7 +592,7 @@ class StudyPage(QWidget):
 
             description.setStyleSheet(
                 """
-                color: #666;
+                color: palette(window-text);
                 """
             )
 
@@ -782,7 +782,7 @@ class StudyPage(QWidget):
         frame.setStyleSheet(
             """
             QFrame {
-                border: 1px solid #d8d8d8;
+                border: 1px solid palette(mid);
                 border-radius: 9px;
                 padding: 8px;
             }
@@ -828,7 +828,7 @@ class StudyPage(QWidget):
 
         subject.setStyleSheet(
             """
-            color: #666;
+            color: palette(window-text);
             """
         )
 
@@ -1127,7 +1127,7 @@ class StudyPage(QWidget):
         label.setStyleSheet(
             """
             padding: 20px;
-            color: #777;
+            color: palette(window-text);
             """
         )
 

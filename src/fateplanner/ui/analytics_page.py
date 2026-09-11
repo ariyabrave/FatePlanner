@@ -1,23 +1,14 @@
 from datetime import date
 
-from PySide6.QtCore import (
-    QRectF,
-    Qt,
-)
-from PySide6.QtGui import (
-    QColor,
-    QFont,
-    QPainter,
-    QPen,
-)
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
     QFrame,
+    QGridLayout,
     QHBoxLayout,
     QHeaderView,
     QLabel,
-    QProgressBar,
     QPushButton,
     QTabWidget,
     QTableWidget,
@@ -36,6 +27,12 @@ from fateplanner.services.finance_service import (
 from fateplanner.services.study_service import (
     format_study_duration,
 )
+from fateplanner.ui.analytics_charts import (
+    DonutChartWidget,
+    GaugeWidget,
+    ProductivityChartWidget,
+    RadarChartWidget,
+)
 from fateplanner.utils.date_utils import (
     format_jalali_date,
     format_jalali_month_title,
@@ -43,464 +40,9 @@ from fateplanner.utils.date_utils import (
     format_jalali_week_range,
     get_persian_week,
     gregorian_to_jalali,
+    jalali_to_gregorian,
     to_persian_digits,
 )
-
-
-class AnalyticsBarChart(QWidget):
-    def __init__(
-        self,
-        parent=None,
-    ):
-        super().__init__(parent)
-
-        self.data = []
-        self.mode = "tasks"
-
-        self.setMinimumHeight(
-            300
-        )
-
-    def set_data(
-        self,
-        data: list[dict],
-        mode: str,
-    ):
-        self.data = data
-        self.mode = mode
-
-        self.update()
-
-    def paintEvent(
-        self,
-        event,
-    ):
-        super().paintEvent(
-            event
-        )
-
-        painter = QPainter(
-            self
-        )
-
-        painter.setRenderHint(
-            QPainter.RenderHint.Antialiasing
-        )
-
-        width = self.width()
-        height = self.height()
-
-        left = 55
-        right = 20
-        top = 35
-        bottom = 60
-
-        chart_width = max(
-            1,
-            width - left - right,
-        )
-
-        chart_height = max(
-            1,
-            height - top - bottom,
-        )
-
-        painter.fillRect(
-            self.rect(),
-            self.palette().base(),
-        )
-
-        title_font = QFont(
-            painter.font()
-        )
-
-        title_font.setBold(
-            True
-        )
-
-        title_font.setPointSize(
-            11
-        )
-
-        painter.setFont(
-            title_font
-        )
-
-        titles = {
-            "tasks": (
-                "کارهای تکمیل‌شده"
-            ),
-            "habits": (
-                "درصد انجام عادت‌ها"
-            ),
-            "study": (
-                "زمان مطالعه"
-            ),
-        }
-
-        painter.drawText(
-            QRectF(
-                left,
-                2,
-                chart_width,
-                28,
-            ),
-            Qt.AlignmentFlag.AlignCenter,
-            titles[
-                self.mode
-            ],
-        )
-
-        if not self.data:
-            painter.drawText(
-                QRectF(
-                    left,
-                    top,
-                    chart_width,
-                    chart_height,
-                ),
-                Qt.AlignmentFlag.AlignCenter,
-                "داده‌ای وجود ندارد.",
-            )
-
-            return
-
-        if self.mode == "tasks":
-            values_a = [
-                row["completed"]
-                for row in self.data
-            ]
-
-            values_b = [
-                row["total"]
-                for row in self.data
-            ]
-
-            legend_a = "انجام‌شده"
-            legend_b = "کل"
-
-        elif self.mode == "habits":
-            values_a = [
-                row["percentage"]
-                for row in self.data
-            ]
-
-            values_b = []
-
-            legend_a = "درصد انجام"
-            legend_b = ""
-
-        else:
-            values_a = [
-                row["actual_seconds"]
-                / 60
-                for row in self.data
-            ]
-
-            values_b = [
-                row["planned_minutes"]
-                for row in self.data
-            ]
-
-            legend_a = "واقعی"
-            legend_b = "برنامه"
-
-        maximum = max(
-            values_a
-            + values_b
-            + [1]
-        )
-
-        if self.mode == "habits":
-            maximum = max(
-                100,
-                maximum,
-            )
-
-        axis_pen = QPen(
-            QColor(
-                "#888888"
-            )
-        )
-
-        painter.setPen(
-            axis_pen
-        )
-
-        painter.drawLine(
-            left,
-            top,
-            left,
-            top + chart_height,
-        )
-
-        painter.drawLine(
-            left,
-            top + chart_height,
-            left + chart_width,
-            top + chart_height,
-        )
-
-        guide_font = QFont(
-            painter.font()
-        )
-
-        guide_font.setBold(
-            False
-        )
-
-        guide_font.setPointSize(
-            8
-        )
-
-        painter.setFont(
-            guide_font
-        )
-
-        for step in range(
-            5
-        ):
-            ratio = step / 4
-
-            y = (
-                top
-                + chart_height
-                - chart_height
-                * ratio
-            )
-
-            value = round(
-                maximum
-                * ratio
-            )
-
-            painter.setPen(
-                QColor(
-                    "#dddddd"
-                )
-            )
-
-            painter.drawLine(
-                left,
-                int(y),
-                left + chart_width,
-                int(y),
-            )
-
-            painter.setPen(
-                QColor(
-                    "#666666"
-                )
-            )
-
-            painter.drawText(
-                QRectF(
-                    0,
-                    y - 10,
-                    left - 8,
-                    20,
-                ),
-                (
-                    Qt.AlignmentFlag.AlignRight
-                    | Qt.AlignmentFlag.AlignVCenter
-                ),
-                to_persian_digits(
-                    value
-                ),
-            )
-
-        group_width = (
-            chart_width
-            / len(
-                self.data
-            )
-        )
-
-        if values_b:
-            bar_width = min(
-                24,
-                group_width * 0.28,
-            )
-
-        else:
-            bar_width = min(
-                36,
-                group_width * 0.45,
-            )
-
-        for index, row in enumerate(
-            self.data
-        ):
-            center_x = (
-                left
-                + group_width
-                * (
-                    index
-                    + 0.5
-                )
-            )
-
-            value_a = (
-                values_a[
-                    index
-                ]
-            )
-
-            height_a = (
-                value_a
-                / maximum
-                * chart_height
-            )
-
-            if values_b:
-                rect_a = QRectF(
-                    center_x
-                    - bar_width
-                    - 2,
-                    top
-                    + chart_height
-                    - height_a,
-                    bar_width,
-                    height_a,
-                )
-
-            else:
-                rect_a = QRectF(
-                    center_x
-                    - bar_width / 2,
-                    top
-                    + chart_height
-                    - height_a,
-                    bar_width,
-                    height_a,
-                )
-
-            painter.fillRect(
-                rect_a,
-                QColor(
-                    "#67b77a"
-                ),
-            )
-
-            if values_b:
-                value_b = (
-                    values_b[
-                        index
-                    ]
-                )
-
-                height_b = (
-                    value_b
-                    / maximum
-                    * chart_height
-                )
-
-                rect_b = QRectF(
-                    center_x
-                    + 2,
-                    top
-                    + chart_height
-                    - height_b,
-                    bar_width,
-                    height_b,
-                )
-
-                painter.fillRect(
-                    rect_b,
-                    QColor(
-                        "#8fa8ff"
-                    ),
-                )
-
-            row_date = date.fromisoformat(
-                row[
-                    "date"
-                    if "date" in row
-                    else "session_date"
-                ]
-            )
-
-            painter.setPen(
-                QColor(
-                    "#555555"
-                )
-            )
-
-            painter.drawText(
-                QRectF(
-                    center_x
-                    - group_width / 2,
-                    top
-                    + chart_height
-                    + 7,
-                    group_width,
-                    35,
-                ),
-                (
-                    Qt.AlignmentFlag.AlignCenter
-                    | Qt.AlignmentFlag.AlignTop
-                ),
-                format_jalali_short(
-                    row_date
-                ),
-            )
-
-        legend_y = (
-            height - 18
-        )
-
-        painter.fillRect(
-            QRectF(
-                left,
-                legend_y,
-                12,
-                12,
-            ),
-            QColor(
-                "#67b77a"
-            ),
-        )
-
-        painter.setPen(
-            QColor(
-                "#555555"
-            )
-        )
-
-        painter.drawText(
-            QRectF(
-                left + 18,
-                legend_y - 4,
-                110,
-                20,
-            ),
-            Qt.AlignmentFlag.AlignLeft,
-            legend_a,
-        )
-
-        if values_b:
-            painter.fillRect(
-                QRectF(
-                    left + 135,
-                    legend_y,
-                    12,
-                    12,
-                ),
-                QColor(
-                    "#8fa8ff"
-                ),
-            )
-
-            painter.drawText(
-                QRectF(
-                    left + 153,
-                    legend_y - 4,
-                    100,
-                    20,
-                ),
-                Qt.AlignmentFlag.AlignLeft,
-                legend_b,
-            )
 
 
 class AnalyticsPage(QWidget):
@@ -534,13 +76,6 @@ class AnalyticsPage(QWidget):
         )
 
         self.date_label = QLabel()
-
-        self.date_label.setStyleSheet(
-            """
-            font-size: 15px;
-            color: #666;
-            """
-        )
 
         layout.addWidget(
             title
@@ -590,10 +125,6 @@ class AnalyticsPage(QWidget):
 
         self.refresh()
 
-    # ==================================
-    # Overview
-    # ==================================
-
     def create_overview_tab(
         self,
     ):
@@ -603,80 +134,68 @@ class AnalyticsPage(QWidget):
             tab
         )
 
-        productivity_title = QLabel(
-            "بهره‌وری این هفته"
+        top_layout = QHBoxLayout()
+
+        self.radar = RadarChartWidget()
+
+        top_layout.addWidget(
+            self.radar,
+            2,
         )
 
-        productivity_title.setStyleSheet(
-            """
-            font-size: 19px;
-            font-weight: bold;
-            """
+        gauges_widget = QWidget()
+
+        gauges = QGridLayout(
+            gauges_widget
         )
 
-        layout.addWidget(
-            productivity_title
+        self.task_gauge = GaugeWidget(
+            "کارها"
         )
 
-        productivity_frame = (
-            QFrame()
+        self.habit_gauge = GaugeWidget(
+            "عادت‌ها"
         )
 
-        productivity_frame.setStyleSheet(
-            """
-            QFrame {
-                border: 1px solid #d8d8d8;
-                border-radius: 10px;
-                padding: 8px;
-            }
-            """
+        self.study_gauge = GaugeWidget(
+            "مطالعه"
         )
 
-        productivity_layout = QHBoxLayout(
-            productivity_frame
+        self.savings_gauge = GaugeWidget(
+            "پس‌انداز"
         )
 
-        self.overview_tasks = (
-            self.create_card()
+        gauges.addWidget(
+            self.task_gauge,
+            0,
+            0,
         )
 
-        self.overview_habits = (
-            self.create_card()
+        gauges.addWidget(
+            self.habit_gauge,
+            0,
+            1,
         )
 
-        self.overview_study = (
-            self.create_card()
+        gauges.addWidget(
+            self.study_gauge,
+            1,
+            0,
         )
 
-        productivity_layout.addWidget(
-            self.overview_tasks
+        gauges.addWidget(
+            self.savings_gauge,
+            1,
+            1,
         )
 
-        productivity_layout.addWidget(
-            self.overview_habits
+        top_layout.addWidget(
+            gauges_widget,
+            2,
         )
 
-        productivity_layout.addWidget(
-            self.overview_study
-        )
-
-        layout.addWidget(
-            productivity_frame
-        )
-
-        finance_title = QLabel(
-            "وضعیت مالی ماه جاری"
-        )
-
-        finance_title.setStyleSheet(
-            """
-            font-size: 19px;
-            font-weight: bold;
-            """
-        )
-
-        layout.addWidget(
-            finance_title
+        layout.addLayout(
+            top_layout
         )
 
         finance_frame = QFrame()
@@ -684,7 +203,7 @@ class AnalyticsPage(QWidget):
         finance_frame.setStyleSheet(
             """
             QFrame {
-                border: 1px solid #d8d8d8;
+                border: 1px solid palette(mid);
                 border-radius: 10px;
                 padding: 8px;
             }
@@ -745,40 +264,7 @@ class AnalyticsPage(QWidget):
             self.overview_warning
         )
 
-        layout.addStretch()
-
         return tab
-
-    def create_card(
-        self,
-    ):
-        label = QLabel()
-
-        label.setAlignment(
-            Qt.AlignmentFlag.AlignCenter
-        )
-
-        label.setWordWrap(
-            True
-        )
-
-        label.setMinimumHeight(
-            110
-        )
-
-        label.setStyleSheet(
-            """
-            font-size: 15px;
-            font-weight: bold;
-            padding: 10px;
-            """
-        )
-
-        return label
-
-    # ==================================
-    # Productivity
-    # ==================================
 
     def create_productivity_tab(
         self,
@@ -809,13 +295,6 @@ class AnalyticsPage(QWidget):
 
         self.productivity_week_label.setAlignment(
             Qt.AlignmentFlag.AlignCenter
-        )
-
-        self.productivity_week_label.setStyleSheet(
-            """
-            font-size: 18px;
-            font-weight: bold;
-            """
         )
 
         previous_button.clicked.connect(
@@ -883,8 +362,10 @@ class AnalyticsPage(QWidget):
 
         metric_layout = QHBoxLayout()
 
-        metric_label = QLabel(
-            "نمودار:"
+        metric_layout.addWidget(
+            QLabel(
+                "نمودار:"
+            )
         )
 
         self.metric_input = QComboBox()
@@ -909,10 +390,6 @@ class AnalyticsPage(QWidget):
         )
 
         metric_layout.addWidget(
-            metric_label
-        )
-
-        metric_layout.addWidget(
             self.metric_input,
             1,
         )
@@ -922,7 +399,7 @@ class AnalyticsPage(QWidget):
         )
 
         self.productivity_chart = (
-            AnalyticsBarChart()
+            ProductivityChartWidget()
         )
 
         layout.addWidget(
@@ -957,10 +434,6 @@ class AnalyticsPage(QWidget):
 
         return tab
 
-    # ==================================
-    # Finance analytics
-    # ==================================
-
     def create_finance_tab(
         self,
     ):
@@ -988,13 +461,6 @@ class AnalyticsPage(QWidget):
 
         self.finance_month_label.setAlignment(
             Qt.AlignmentFlag.AlignCenter
-        )
-
-        self.finance_month_label.setStyleSheet(
-            """
-            font-size: 18px;
-            font-weight: bold;
-            """
         )
 
         previous_button.clicked.connect(
@@ -1060,19 +526,15 @@ class AnalyticsPage(QWidget):
             summary
         )
 
-        category_title = QLabel(
-            "هزینه بر اساس دسته‌بندی"
+        finance_visuals = QHBoxLayout()
+
+        self.expense_donut = (
+            DonutChartWidget()
         )
 
-        category_title.setStyleSheet(
-            """
-            font-size: 18px;
-            font-weight: bold;
-            """
-        )
-
-        layout.addWidget(
-            category_title
+        finance_visuals.addWidget(
+            self.expense_donut,
+            1,
         )
 
         self.category_table = QTableWidget()
@@ -1094,12 +556,44 @@ class AnalyticsPage(QWidget):
             self.category_table
         )
 
-        layout.addWidget(
+        finance_visuals.addWidget(
             self.category_table,
+            2,
+        )
+
+        layout.addLayout(
+            finance_visuals,
             1,
         )
 
         return tab
+
+    def create_card(
+        self,
+    ):
+        label = QLabel()
+
+        label.setAlignment(
+            Qt.AlignmentFlag.AlignCenter
+        )
+
+        label.setWordWrap(
+            True
+        )
+
+        label.setMinimumHeight(
+            100
+        )
+
+        label.setStyleSheet(
+            """
+            font-size: 15px;
+            font-weight: bold;
+            padding: 10px;
+            """
+        )
+
+        return label
 
     def configure_table(
         self,
@@ -1128,10 +622,6 @@ class AnalyticsPage(QWidget):
         table.horizontalHeader().setSectionResizeMode(
             QHeaderView.ResizeMode.Stretch
         )
-
-    # ==================================
-    # Refresh
-    # ==================================
 
     def refresh(
         self,
@@ -1169,74 +659,144 @@ class AnalyticsPage(QWidget):
         budgets = finance["budgets"]
         savings = finance["savings"]
 
-        self.overview_tasks.setText(
-            "کارها\n\n"
-            f"{to_persian_digits(tasks['completed'])}"
-            " از "
-            f"{to_persian_digits(tasks['total'])}"
-            " انجام شده\n"
-            f"{to_persian_digits(tasks['percentage'])}٪"
+        task_score = min(
+            100,
+            tasks["percentage"],
         )
 
-        self.overview_habits.setText(
-            "عادت‌ها\n\n"
-            f"{to_persian_digits(habits['completed'])}"
-            " از "
-            f"{to_persian_digits(habits['scheduled'])}"
-            "\n"
-            f"{to_persian_digits(habits['percentage'])}٪"
+        habit_score = min(
+            100,
+            habits["percentage"],
         )
 
-        study_actual = (
-            format_study_duration(
-                study["actual_seconds"]
+        study_score = min(
+            100,
+            study["time_percentage"],
+        )
+
+        if savings["total_target"]:
+            savings_score = min(
+                100,
+                round(
+                    savings["total_saved"]
+                    / savings["total_target"]
+                    * 100
+                ),
             )
+
+        else:
+            savings_score = 0
+
+        if budgets["total_budget"]:
+            if (
+                budgets["budgeted_spending"]
+                <= budgets["total_budget"]
+            ):
+                budget_score = 100
+
+            else:
+                budget_score = max(
+                    0,
+                    round(
+                        budgets["total_budget"]
+                        / budgets[
+                            "budgeted_spending"
+                        ]
+                        * 100
+                    ),
+                )
+
+        else:
+            budget_score = 0
+
+        self.task_gauge.set_data(
+            task_score,
+            "تکمیل هفتگی",
         )
 
-        self.overview_study.setText(
-            "مطالعه\n\n"
-            f"{to_persian_digits(study_actual)}\n"
-            "تحقق زمان: "
-            f"{to_persian_digits(study['time_percentage'])}٪"
+        self.habit_gauge.set_data(
+            habit_score,
+            "پایبندی هفتگی",
+        )
+
+        self.study_gauge.set_data(
+            study_score,
+            "تحقق زمان مطالعه",
+        )
+
+        self.savings_gauge.set_data(
+            savings_score,
+            "پیشرفت اهداف",
+        )
+
+        self.radar.set_metrics(
+            [
+                (
+                    "کارها",
+                    task_score,
+                ),
+                (
+                    "عادت‌ها",
+                    habit_score,
+                ),
+                (
+                    "مطالعه",
+                    study_score,
+                ),
+                (
+                    "بودجه",
+                    budget_score,
+                ),
+                (
+                    "پس‌انداز",
+                    savings_score,
+                ),
+            ]
         )
 
         self.overview_finance.setText(
-            "مالی\n\n"
+            "مالی ماه\n\n"
             "درآمد: "
             + to_persian_digits(
                 format_money(
-                    finance_data["income"]
+                    finance_data[
+                        "income"
+                    ]
                 )
             )
             + "\nهزینه: "
             + to_persian_digits(
                 format_money(
-                    finance_data["expense"]
+                    finance_data[
+                        "expense"
+                    ]
                 )
             )
             + "\nمانده: "
             + to_persian_digits(
                 format_money(
-                    finance_data["balance"]
+                    finance_data[
+                        "balance"
+                    ]
                 )
             )
         )
 
         self.overview_budget.setText(
             "بودجه\n\n"
-            "مصرف: "
-            + to_persian_digits(
-                format_money(
-                    budgets[
-                        "budgeted_spending"
-                    ]
-                )
-            )
-            + "\nاز "
+            "کل: "
             + to_persian_digits(
                 format_money(
                     budgets[
                         "total_budget"
+                    ]
+                )
+            )
+            + "\nمصرف: "
+            + to_persian_digits(
+                format_money(
+                    budgets[
+                        "budgeted_spending"
                     ]
                 )
             )
@@ -1250,34 +810,33 @@ class AnalyticsPage(QWidget):
 
         self.overview_savings.setText(
             "پس‌انداز\n\n"
+            "ذخیره‌شده: "
             + to_persian_digits(
                 format_money(
-                    savings["total_saved"]
+                    savings[
+                        "total_saved"
+                    ]
                 )
             )
-            + " تومان\n"
-            "اهداف کامل: "
+            + "\nباقی‌مانده: "
+            + to_persian_digits(
+                format_money(
+                    savings[
+                        "total_remaining"
+                    ]
+                )
+            )
+            + "\nاهداف کامل: "
             + to_persian_digits(
                 savings[
                     "completed_goals"
-                ]
-            )
-            + " از "
-            + to_persian_digits(
-                savings[
-                    "goal_count"
                 ]
             )
         )
 
         warnings = []
 
-        if (
-            productivity[
-                "overdue_tasks"
-            ]
-            > 0
-        ):
+        if productivity["overdue_tasks"]:
             warnings.append(
                 "کار عقب‌افتاده: "
                 + to_persian_digits(
@@ -1287,12 +846,7 @@ class AnalyticsPage(QWidget):
                 )
             )
 
-        if (
-            budgets[
-                "overspent_count"
-            ]
-            > 0
-        ):
+        if budgets["overspent_count"]:
             warnings.append(
                 "بودجه ردشده: "
                 + to_persian_digits(
@@ -1302,18 +856,19 @@ class AnalyticsPage(QWidget):
                 )
             )
 
-        if warnings:
-            self.overview_warning.setText(
+        self.overview_warning.setText(
+            (
                 "⚠️ "
                 + "   |   ".join(
                     warnings
                 )
             )
-
-        else:
-            self.overview_warning.setText(
-                "وضعیت کلی خوب است؛ مورد هشدار فعالی وجود ندارد."
+            if warnings
+            else (
+                "وضعیت کلی خوب است؛ "
+                "مورد هشدار فعالی وجود ندارد."
             )
+        )
 
     def refresh_productivity(
         self,
@@ -1373,7 +928,6 @@ class AnalyticsPage(QWidget):
         )
 
         self.refresh_productivity_chart()
-
         self.refresh_daily_table()
 
     def refresh_productivity_chart(
@@ -1442,10 +996,8 @@ class AnalyticsPage(QWidget):
         for index in range(
             7
         ):
-            target_date = (
-                date.fromisoformat(
-                    tasks[index]["date"]
-                )
+            target_date = date.fromisoformat(
+                tasks[index]["date"]
             )
 
             task_text = (
@@ -1522,9 +1074,7 @@ class AnalyticsPage(QWidget):
                 values
             ):
                 item = QTableWidgetItem(
-                    str(
-                        value
-                    )
+                    str(value)
                 )
 
                 item.setTextAlignment(
@@ -1552,12 +1102,8 @@ class AnalyticsPage(QWidget):
 
         self.finance_month_label.setText(
             format_jalali_month_title(
-                snapshot[
-                    "jalali_year"
-                ],
-                snapshot[
-                    "jalali_month"
-                ],
+                snapshot["jalali_year"],
+                snapshot["jalali_month"],
             )
         )
 
@@ -1592,9 +1138,7 @@ class AnalyticsPage(QWidget):
             "کل: "
             + to_persian_digits(
                 format_money(
-                    budgets[
-                        "total_budget"
-                    ]
+                    budgets["total_budget"]
                 )
             )
             + "\nمصرف: "
@@ -1620,17 +1164,13 @@ class AnalyticsPage(QWidget):
             "هدف: "
             + to_persian_digits(
                 format_money(
-                    savings[
-                        "total_target"
-                    ]
+                    savings["total_target"]
                 )
             )
             + "\nذخیره‌شده: "
             + to_persian_digits(
                 format_money(
-                    savings[
-                        "total_saved"
-                    ]
+                    savings["total_saved"]
                 )
             )
             + "\nباقی‌مانده: "
@@ -1641,6 +1181,26 @@ class AnalyticsPage(QWidget):
                     ]
                 )
             )
+        )
+
+        donut_data = [
+            {
+                "label": row[
+                    "category_name"
+                ],
+                "value": row[
+                    "total_amount"
+                ],
+            }
+            for row in (
+                snapshot[
+                    "category_spending"
+                ]
+            )
+        ]
+
+        self.expense_donut.set_data(
+            donut_data
         )
 
         self.refresh_category_table()
@@ -1661,9 +1221,7 @@ class AnalyticsPage(QWidget):
         )
 
         self.category_table.setRowCount(
-            len(
-                rows
-            )
+            len(rows)
         )
 
         for row_index, row in enumerate(
@@ -1671,9 +1229,7 @@ class AnalyticsPage(QWidget):
         ):
             share = (
                 round(
-                    row[
-                        "total_amount"
-                    ]
+                    row["total_amount"]
                     / total_expense
                     * 100
                 )
@@ -1682,9 +1238,7 @@ class AnalyticsPage(QWidget):
             )
 
             values = [
-                row[
-                    "category_name"
-                ],
+                row["category_name"],
                 (
                     to_persian_digits(
                         format_money(
@@ -1712,9 +1266,7 @@ class AnalyticsPage(QWidget):
                 values
             ):
                 item = QTableWidgetItem(
-                    str(
-                        value
-                    )
+                    str(value)
                 )
 
                 item.setTextAlignment(
@@ -1726,10 +1278,6 @@ class AnalyticsPage(QWidget):
                     column,
                     item,
                 )
-
-    # ==================================
-    # Productivity navigation
-    # ==================================
 
     def previous_productivity_week(
         self,
@@ -1768,10 +1316,6 @@ class AnalyticsPage(QWidget):
 
         self.refresh_productivity()
 
-    # ==================================
-    # Finance navigation
-    # ==================================
-
     def previous_finance_month(
         self,
     ):
@@ -1788,10 +1332,6 @@ class AnalyticsPage(QWidget):
 
         else:
             month -= 1
-
-        from fateplanner.utils.date_utils import (
-            jalali_to_gregorian,
-        )
 
         self.finance_anchor = (
             jalali_to_gregorian(
@@ -1820,10 +1360,6 @@ class AnalyticsPage(QWidget):
         else:
             month += 1
 
-        from fateplanner.utils.date_utils import (
-            jalali_to_gregorian,
-        )
-
         self.finance_anchor = (
             jalali_to_gregorian(
                 year,
@@ -1845,12 +1381,10 @@ class AnalyticsPage(QWidget):
 
     def on_tab_changed(
         self,
-        index: int,
+        index,
     ):
-        widget = (
-            self.tabs.widget(
-                index
-            )
+        widget = self.tabs.widget(
+            index
         )
 
         if widget is self.overview_tab:
