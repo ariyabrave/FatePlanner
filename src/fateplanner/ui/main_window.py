@@ -332,7 +332,7 @@ class MainWindow(QMainWindow):
         )
 
         title = QLabel(
-            "سلام 🌷"
+            "درود بر شما ⛅"
         )
 
         title.setStyleSheet(

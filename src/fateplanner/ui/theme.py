@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from PySide6.QtCore import (
     QSettings,
     Qt,
@@ -10,6 +12,13 @@ from PySide6.QtGui import (
 from PySide6.QtWidgets import (
     QApplication,
 )
+
+
+CHECKMARK_ICON = (
+    Path(__file__).resolve().parent
+    / "assets"
+    / "checkmark.svg"
+).as_posix()
 
 
 THEME_SYSTEM = "system"
@@ -427,34 +436,58 @@ def build_stylesheet(
     }}
 
 
+    
+    
     /* ================================
        Checkboxes
        ================================ */
 
     QCheckBox {{
-        spacing: 8px;
+        spacing: 10px;
         background-color: transparent;
+        min-height: 30px;
     }}
 
     QCheckBox::indicator {{
-        width: 18px;
-        height: 18px;
-        border: 1px solid {colors["border"]};
+        width: 21px;
+        height: 21px;
+
+        border: 2px solid {colors["border"]};
         border-radius: 5px;
-        background-color: {colors["surface"]};
+
+        background-color: {colors["surface_alt"]};
     }}
 
     QCheckBox::indicator:hover {{
-        border-color: {colors["accent"]};
+        border: 2px solid {colors["accent"]};
+        background-color: {colors["surface_hover"]};
     }}
 
     QCheckBox::indicator:checked {{
+        border: 2px solid {colors["accent"]};
         background-color: {colors["accent"]};
-        border-color: {colors["accent"]};
+
+        image: url("{CHECKMARK_ICON}");
+    }}
+
+    QCheckBox::indicator:checked:hover {{
+        border: 2px solid {colors["accent_hover"]};
+        background-color: {colors["accent_hover"]};
+
+        image: url("{CHECKMARK_ICON}");
+    }}
+
+    QCheckBox::indicator:disabled {{
+        border: 2px solid {colors["disabled"]};
+        background-color: {colors["surface_alt"]};
+    }}
+
+    QCheckBox:disabled {{
+        color: {colors["disabled"]};
     }}
 
 
-    /* ================================
+/* ================================
        Tabs
        ================================ */
 
