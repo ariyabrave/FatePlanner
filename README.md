@@ -1,5 +1,3 @@
-
-````markdown
 <p align="center">
   <img src="src/fateplanner/ui/assets/app_icon.png" width="150" alt="FatePlanner icon">
 </p>
@@ -288,6 +286,3 @@ A project license will be selected before the first public release.
 <p align="center">
   Made for a calmer, more organized everyday life.
 </p>
-```
-
-
