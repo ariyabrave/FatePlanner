@@ -407,6 +407,29 @@ class FinancePage(QWidget):
             1,
         )
 
+        # Responsive finance action column
+        action_header = (
+            self.transaction_table.horizontalHeader()
+        )
+
+        action_header.setSectionResizeMode(
+            5,
+            action_header.ResizeMode.Fixed,
+        )
+
+        self.transaction_table.setColumnWidth(
+            5,
+            210,
+        )
+
+        self.transaction_table.verticalHeader().setMinimumSectionSize(
+            52
+        )
+
+        self.transaction_table.verticalHeader().setDefaultSectionSize(
+            52
+        )
+
         return tab
 
     # ==================================

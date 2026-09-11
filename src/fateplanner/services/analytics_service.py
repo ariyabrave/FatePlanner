@@ -98,6 +98,7 @@ def get_task_summary_between(
 
             WHERE
                 is_recurring_template = 0
+                AND is_skipped = 0
                 AND parent_id IS NULL
                 AND due_date IS NOT NULL
                 AND due_date >= ?
@@ -158,6 +159,7 @@ def get_overdue_task_count(
 
             WHERE
                 is_recurring_template = 0
+                AND is_skipped = 0
                 AND parent_id IS NULL
                 AND completed = 0
                 AND due_date IS NOT NULL
@@ -206,6 +208,7 @@ def get_task_daily_totals_between(
 
             WHERE
                 is_recurring_template = 0
+                AND is_skipped = 0
                 AND parent_id IS NULL
                 AND due_date >= ?
                 AND due_date <= ?

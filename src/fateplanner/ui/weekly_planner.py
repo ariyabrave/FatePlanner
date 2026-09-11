@@ -213,7 +213,7 @@ class WeeklyPlanner(QWidget):
         frame = QFrame()
 
         frame.setMinimumWidth(
-            180
+            145
         )
 
         frame.setStyleSheet(

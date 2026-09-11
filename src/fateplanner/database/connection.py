@@ -631,4 +631,24 @@ def initialize_database(
             """
         )
 
+        # Recurring occurrence skip migration
+        task_columns = {
+            row["name"]
+            for row in connection.execute(
+                """
+                PRAGMA table_info(tasks)
+                """
+            ).fetchall()
+        }
+
+        if "is_skipped" not in task_columns:
+            connection.execute(
+                """
+                ALTER TABLE tasks
+                ADD COLUMN is_skipped
+                INTEGER NOT NULL
+                DEFAULT 0
+                """
+            )
+
         connection.commit()

@@ -215,6 +215,7 @@ def get_tasks(
             WHERE
                 parent_id IS NULL
                 AND is_recurring_template = 0
+                AND is_skipped = 0
             ORDER BY
                 completed ASC,
                 CASE priority
@@ -262,6 +263,7 @@ def get_tasks_for_date(
                 due_date = ?
                 AND parent_id IS NULL
                 AND is_recurring_template = 0
+                AND is_skipped = 0
             ORDER BY
                 completed ASC,
                 all_day DESC,
@@ -342,6 +344,7 @@ def update_task(
             WHERE
                 id = ?
                 AND is_recurring_template = 0
+                AND is_skipped = 0
             """,
             (
                 title,
@@ -485,46 +488,60 @@ def delete_task(
     task_id: int,
     database_path: str | Path | None = None,
 ) -> None:
-    parent_id = None
-
-    with get_connection(
-        database_path
-    ) as connection:
-
+    with get_connection(database_path) as connection:
         task = connection.execute(
             """
             SELECT
-                parent_id,
-                is_recurring_template
+                id,
+                is_recurring_template,
+                recurring_template_id
             FROM tasks
             WHERE id = ?
             """,
-            (task_id,),
+            (
+                task_id,
+            ),
         ).fetchone()
 
         if task is None:
             return
 
-        if task["is_recurring_template"]:
-            return
-
-        parent_id = task["parent_id"]
-
-        connection.execute(
-            """
-            DELETE FROM tasks
-            WHERE id = ?
-            """,
-            (task_id,),
+        is_occurrence = (
+            not bool(
+                task[
+                    "is_recurring_template"
+                ]
+            )
+            and task[
+                "recurring_template_id"
+            ]
+            is not None
         )
+
+        if is_occurrence:
+            connection.execute(
+                """
+                UPDATE tasks
+                SET is_skipped = 1
+                WHERE id = ?
+                """,
+                (
+                    task_id,
+                ),
+            )
+
+        else:
+            connection.execute(
+                """
+                DELETE FROM tasks
+                WHERE id = ?
+                """,
+                (
+                    task_id,
+                ),
+            )
 
         connection.commit()
-
-    if parent_id is not None:
-        _sync_parent_completion(
-            parent_id,
-            database_path,
-        )
 
 
 def get_subtask_progress(
@@ -597,6 +614,7 @@ def get_task_progress(
             WHERE
                 parent_id IS NULL
                 AND is_recurring_template = 0
+                AND is_skipped = 0
             """
         ).fetchone()
 
@@ -647,6 +665,7 @@ def get_task_progress_for_date(
                 due_date = ?
                 AND parent_id IS NULL
                 AND is_recurring_template = 0
+                AND is_skipped = 0
             """,
             (date,),
         ).fetchone()

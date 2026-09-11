@@ -6,6 +6,7 @@ from PySide6.QtCore import (
 )
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
+    QSizePolicy,
     QCheckBox,
     QFrame,
     QHBoxLayout,
@@ -135,10 +136,30 @@ class MainWindow(QMainWindow):
             central_widget
         )
 
+        main_layout.setContentsMargins(
+            8,
+            8,
+            8,
+            8,
+        )
+
+        main_layout.setSpacing(
+            10
+        )
+
         self.sidebar = QListWidget()
 
-        self.sidebar.setFixedWidth(
-            230
+        self.sidebar.setMinimumWidth(
+            190
+        )
+
+        self.sidebar.setMaximumWidth(
+            250
+        )
+
+        self.sidebar.setSizePolicy(
+            QSizePolicy.Policy.Preferred,
+            QSizePolicy.Policy.Expanding,
         )
 
         self.sidebar.addItems(
@@ -156,6 +177,11 @@ class MainWindow(QMainWindow):
         )
 
         self.pages = QStackedWidget()
+
+        self.pages.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Expanding,
+        )
 
         self.home_page = (
             self.create_home_page()

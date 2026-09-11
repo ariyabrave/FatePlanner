@@ -634,6 +634,44 @@ def build_stylesheet(
     }}
 
 
+    /* Final responsive polish */
+
+    QAbstractItemView {{
+        outline: none;
+    }}
+
+    QTableWidget,
+    QTableView {{
+        font-size: 10pt;
+    }}
+
+    QTableWidget::item,
+    QTableView::item {{
+        padding: 6px;
+    }}
+
+    QHeaderView::section {{
+        min-height: 28px;
+    }}
+
+QTabBar::tab {{
+        min-width: 80px;
+    }}
+
+    QLineEdit,
+    QComboBox,
+    QSpinBox,
+    QDateEdit,
+    QTimeEdit {{
+        min-height: 24px;
+    }}
+
+    QLabel {{
+        qproperty-wordWrap: false;
+    }}
+
+
+
     /* ================================
        Scrollbars
        ================================ */

@@ -290,6 +290,7 @@ def get_series_instances(
             SELECT *
             FROM tasks
             WHERE recurring_template_id = ?
+            AND is_skipped = 0
             ORDER BY due_date ASC
             """,
             (template_id,),
@@ -636,6 +637,7 @@ def update_recurring_series(
                 recurring_template_id = ?
                 AND due_date >= ?
                 AND completed = 0
+                AND is_skipped = 0
             """,
             (
                 template_id,
