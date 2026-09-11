@@ -46,6 +46,10 @@ def main():
         "FatePlanner"
     )
 
+    app.setDesktopFileName(
+        "fateplanner"
+    )
+
     app.setLayoutDirection(
         Qt.LayoutDirection.RightToLeft
     )
