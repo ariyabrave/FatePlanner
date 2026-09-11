@@ -99,14 +99,14 @@ def initialize_database(
             """
         )
 
-        columns = {
+        task_columns = {
             row["name"]
             for row in connection.execute(
                 "PRAGMA table_info(tasks)"
             ).fetchall()
         }
 
-        migrations = {
+        task_migrations = {
             "start_time":
                 """
                 ALTER TABLE tasks
@@ -175,8 +175,10 @@ def initialize_database(
                 """,
         }
 
-        for column, sql in migrations.items():
-            if column not in columns:
+        for column, sql in (
+            task_migrations.items()
+        ):
+            if column not in task_columns:
                 connection.execute(sql)
 
         connection.execute(
@@ -232,9 +234,7 @@ def initialize_database(
             """
             CREATE TABLE IF NOT EXISTS habits (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-
                 title TEXT NOT NULL,
-
                 description TEXT,
 
                 schedule_type TEXT NOT NULL
@@ -252,10 +252,6 @@ def initialize_database(
             )
             """
         )
-
-        # ==================================
-        # Habit completion history
-        # ==================================
 
         connection.execute(
             """
@@ -297,6 +293,80 @@ def initialize_database(
             CREATE INDEX IF NOT EXISTS
             idx_habit_logs_date
             ON habit_logs(log_date)
+            """
+        )
+
+        # ==================================
+        # Study subjects
+        # ==================================
+
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS study_subjects (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+                name TEXT NOT NULL,
+
+                description TEXT,
+
+                archived INTEGER NOT NULL
+                    DEFAULT 0,
+
+                created_at TEXT NOT NULL
+                    DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+
+        # ==================================
+        # Study sessions
+        # ==================================
+
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS study_sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+                subject_id INTEGER NOT NULL,
+
+                title TEXT,
+
+                session_date TEXT NOT NULL,
+
+                planned_minutes INTEGER NOT NULL
+                    DEFAULT 25,
+
+                actual_seconds INTEGER NOT NULL
+                    DEFAULT 0,
+
+                completed INTEGER NOT NULL
+                    DEFAULT 0,
+
+                notes TEXT,
+
+                created_at TEXT NOT NULL
+                    DEFAULT CURRENT_TIMESTAMP,
+
+                FOREIGN KEY (subject_id)
+                    REFERENCES study_subjects(id)
+                    ON DELETE CASCADE
+            )
+            """
+        )
+
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS
+            idx_study_sessions_subject
+            ON study_sessions(subject_id)
+            """
+        )
+
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS
+            idx_study_sessions_date
+            ON study_sessions(session_date)
             """
         )
 

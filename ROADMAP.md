@@ -120,15 +120,55 @@
 - [x] Persistent history
 - [x] Final habit tests
 
-## Milestone 6 — Study Planner
+## ⏳ Milestone 6 — Study Planner + Focus Timer
 
-- [ ] Subjects
-- [ ] Weekly study goals
-- [ ] Study sessions
-- [ ] Study duration
-- [ ] Focus rating
-- [ ] Notes
-- [ ] Pomodoro timer
+### ✅ 6A — Study Planner Foundation
+
+- [x] Study subjects database
+- [x] Create study subjects
+- [x] Edit study subjects
+- [x] Delete study subjects
+- [x] Study session database
+- [x] Create planned study sessions
+- [x] Jalali study session dates
+- [x] Planned study duration
+- [x] Study session notes
+- [x] Edit study sessions
+- [x] Delete study sessions
+- [x] Complete study sessions
+- [x] Today's study progress
+- [x] Daily planned time
+- [x] Actual study time storage
+- [x] Subject/session persistence
+- [x] Tests
+
+### ⏳ 6B — Focus / Pomodoro Timer
+
+- [ ] Select study session
+- [ ] 25 / 5 Pomodoro preset
+- [ ] 50 / 10 deep-focus preset
+- [ ] Custom focus duration
+- [ ] Start timer
+- [ ] Pause timer
+- [ ] Resume timer
+- [ ] Reset timer
+- [ ] Focus/break phases
+- [ ] Store actual study seconds
+- [ ] Automatically update session
+- [ ] Pomodoro counter
+- [ ] Session completion workflow
+- [ ] Timer persistence safety
+- [ ] Final study tests
+
+### ⏳ 6C — Study History + Analytics
+
+- [ ] Study history
+- [ ] Daily study totals
+- [ ] Weekly study totals
+- [ ] Subject totals
+- [ ] Planned vs actual
+- [ ] Jalali date navigation
+- [ ] Study charts
 
 ## Milestone 7 — Finance
 

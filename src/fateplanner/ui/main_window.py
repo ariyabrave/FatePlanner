@@ -49,6 +49,9 @@ from fateplanner.ui.habit_page import (
 from fateplanner.ui.recurring_series_dialog import (
     RecurringSeriesDialog,
 )
+from fateplanner.ui.study_page import (
+    StudyPage,
+)
 from fateplanner.ui.subtask_dialog import (
     SubtaskDialog,
 )
@@ -148,6 +151,8 @@ class MainWindow(QMainWindow):
 
         self.habits_page = HabitPage()
 
+        self.study_page = StudyPage()
+
         self.pages.addWidget(
             self.home_page
         )
@@ -168,8 +173,11 @@ class MainWindow(QMainWindow):
             self.habits_page
         )
 
+        self.pages.addWidget(
+            self.study_page
+        )
+
         remaining_pages = [
-            "مطالعه",
             "امور مالی",
             "گزارش‌ها و پیشرفت",
             "تنظیمات",
@@ -224,6 +232,9 @@ class MainWindow(QMainWindow):
 
         elif index == 4:
             self.habits_page.refresh()
+
+        elif index == 5:
+            self.study_page.refresh()
 
     # ==================================
     # Home
@@ -829,6 +840,12 @@ class MainWindow(QMainWindow):
             "habits_page",
         ):
             self.habits_page.refresh()
+
+        if hasattr(
+            self,
+            "study_page",
+        ):
+            self.study_page.refresh()
 
     def refresh_home(
         self,
