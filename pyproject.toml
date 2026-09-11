@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "FatePlanner"
+version = "0.1.0"
+description = "An offline Persian productivity, study, habit and finance planner."
+requires-python = ">=3.11"
+
+dependencies = [
+    "PySide6",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
+[project.scripts]
+fateplanner = "fateplanner.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
