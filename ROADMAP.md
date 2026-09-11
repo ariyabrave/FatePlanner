@@ -34,13 +34,21 @@
 - [x] Empty-day state
 - [x] Tests
 
-## Milestone 3 — Jalali Calendar + Weekly Planner
+## ✅ Milestone 3 — Jalali Calendar + Weekly Planner
 
-- [ ] Persian calendar
-- [ ] Persian date display
-- [ ] Week navigation
-- [ ] Weekly overview
-- [ ] Assign tasks to days
+- [x] Persian/Jalali date conversion
+- [x] Persian digits
+- [x] Persian month names
+- [x] Persian weekday names
+- [x] Saturday-Friday week
+- [x] Today date display
+- [x] Weekly planner
+- [x] Previous/next week navigation
+- [x] Add tasks from weekly planner
+- [x] Native Jalali date selector
+- [x] Dynamic Jalali month length
+- [x] Gregorian/ISO internal storage
+- [x] Tests
 
 ## Milestone 4 — Recurring Tasks + Subtasks
 

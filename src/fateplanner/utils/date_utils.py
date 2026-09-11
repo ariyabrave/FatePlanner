@@ -30,11 +30,9 @@ PERSIAN_WEEKDAY_NAMES = {
 }
 
 
-PERSIAN_DIGIT_TRANSLATION = (
-    str.maketrans(
-        "0123456789",
-        "۰۱۲۳۴۵۶۷۸۹",
-    )
+PERSIAN_DIGIT_TRANSLATION = str.maketrans(
+    "0123456789",
+    "۰۱۲۳۴۵۶۷۸۹",
 )
 
 
@@ -49,39 +47,71 @@ def to_persian_digits(
 def gregorian_to_jalali(
     gregorian_date: date,
 ) -> jdatetime.date:
-
-    return (
-        jdatetime.date.fromgregorian(
-            date=gregorian_date
-        )
+    return jdatetime.date.fromgregorian(
+        date=gregorian_date
     )
+
+
+def jalali_to_gregorian(
+    year: int,
+    month: int,
+    day: int,
+) -> date:
+    jalali_date = jdatetime.date(
+        year,
+        month,
+        day,
+    )
+
+    return jalali_date.togregorian()
+
+
+def get_jalali_month_length(
+    year: int,
+    month: int,
+) -> int:
+    if 1 <= month <= 6:
+        return 31
+
+    if 7 <= month <= 11:
+        return 30
+
+    if month != 12:
+        raise ValueError(
+            "Invalid Jalali month."
+        )
+
+    try:
+        jdatetime.date(
+            year,
+            12,
+            30,
+        )
+
+        return 30
+
+    except ValueError:
+        return 29
 
 
 def format_jalali_date(
     gregorian_date: date,
 ) -> str:
-
-    jalali_date = (
-        gregorian_to_jalali(
-            gregorian_date
-        )
+    jalali_date = gregorian_to_jalali(
+        gregorian_date
     )
 
-    weekday = (
-        PERSIAN_WEEKDAY_NAMES[
-            gregorian_date.weekday()
-        ]
-    )
+    weekday = PERSIAN_WEEKDAY_NAMES[
+        gregorian_date.weekday()
+    ]
 
     day = to_persian_digits(
         jalali_date.day
     )
 
-    month = (
-        PERSIAN_MONTH_NAMES[
-            jalali_date.month
-        ]
-    )
+    month = PERSIAN_MONTH_NAMES[
+        jalali_date.month
+    ]
 
     year = to_persian_digits(
         jalali_date.year
@@ -98,49 +128,35 @@ def format_jalali_date(
 def format_jalali_short(
     gregorian_date: date,
 ) -> str:
-
-    jalali_date = (
-        gregorian_to_jalali(
-            gregorian_date
-        )
+    jalali_date = gregorian_to_jalali(
+        gregorian_date
     )
 
     day = to_persian_digits(
         jalali_date.day
     )
 
-    month = (
-        PERSIAN_MONTH_NAMES[
-            jalali_date.month
-        ]
-    )
+    month = PERSIAN_MONTH_NAMES[
+        jalali_date.month
+    ]
 
-    return (
-        f"{day} {month}"
-    )
+    return f"{day} {month}"
 
 
 def format_jalali_week_range(
     start_date: date,
     end_date: date,
 ) -> str:
-
-    start_text = (
-        format_jalali_short(
-            start_date
-        )
+    start_text = format_jalali_short(
+        start_date
     )
 
-    end_text = (
-        format_jalali_short(
-            end_date
-        )
+    end_text = format_jalali_short(
+        end_date
     )
 
-    end_jalali = (
-        gregorian_to_jalali(
-            end_date
-        )
+    end_jalali = gregorian_to_jalali(
+        end_date
     )
 
     year = to_persian_digits(
@@ -157,7 +173,6 @@ def format_jalali_week_range(
 def get_persian_week(
     anchor_date: date | None = None,
 ) -> list[date]:
-
     if anchor_date is None:
         anchor_date = date.today()
 
