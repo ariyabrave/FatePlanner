@@ -1,10 +1,109 @@
 import os
+import shutil
 import sqlite3
+import sys
+
 from pathlib import Path
 
 
-APP_DATA_DIR = Path.home() / ".fateplanner"
-DEFAULT_DATABASE_PATH = APP_DATA_DIR / "fateplanner.db"
+APP_NAME = "FatePlanner"
+DATABASE_FILENAME = "fateplanner.db"
+
+# FatePlanner used this location before the
+# platform-native application-data migration.
+LEGACY_APP_DATA_DIR = (
+    Path.home()
+    / ".fateplanner"
+)
+
+
+def _platform_name() -> str:
+    return sys.platform
+
+
+def get_app_data_directory() -> Path:
+    """
+    Return FatePlanner's writable application-data
+    directory for the current operating system.
+
+    An explicit FATEPLANNER_DATA_DIR environment
+    variable always takes precedence.
+    """
+
+    custom_directory = os.getenv(
+        "FATEPLANNER_DATA_DIR"
+    )
+
+    if custom_directory:
+        return Path(
+            custom_directory
+        ).expanduser()
+
+    platform_name = (
+        _platform_name()
+    )
+
+    if platform_name.startswith(
+        "win"
+    ):
+        appdata = (
+            os.getenv("APPDATA")
+            or os.getenv(
+                "LOCALAPPDATA"
+            )
+        )
+
+        if appdata:
+            return (
+                Path(appdata)
+                / APP_NAME
+            )
+
+        return (
+            Path.home()
+            / "AppData"
+            / "Roaming"
+            / APP_NAME
+        )
+
+    if platform_name == "darwin":
+        return (
+            Path.home()
+            / "Library"
+            / "Application Support"
+            / APP_NAME
+        )
+
+    xdg_data_home = os.getenv(
+        "XDG_DATA_HOME"
+    )
+
+    if xdg_data_home:
+        return (
+            Path(
+                xdg_data_home
+            ).expanduser()
+            / APP_NAME
+        )
+
+    return (
+        Path.home()
+        / ".local"
+        / "share"
+        / APP_NAME
+    )
+
+
+# Kept for backwards compatibility with any code
+# importing these constants directly.
+APP_DATA_DIR = (
+    get_app_data_directory()
+)
+
+DEFAULT_DATABASE_PATH = (
+    APP_DATA_DIR
+    / DATABASE_FILENAME
+)
 
 
 def get_database_path() -> Path:
@@ -13,9 +112,93 @@ def get_database_path() -> Path:
     )
 
     if custom_path:
-        return Path(custom_path)
+        return Path(
+            custom_path
+        ).expanduser()
 
-    return DEFAULT_DATABASE_PATH
+    return (
+        get_app_data_directory()
+        / DATABASE_FILENAME
+    )
+
+
+def migrate_legacy_app_data() -> bool:
+    """
+    Copy data from FatePlanner's old ~/.fateplanner
+    directory into the platform-native app-data
+    directory.
+
+    Existing destination data is never overwritten
+    and the old directory is intentionally retained
+    as an additional safety copy.
+    """
+
+    # Explicit development/test paths should never
+    # trigger migration of a user's real data.
+    if (
+        os.getenv(
+            "FATEPLANNER_DB_PATH"
+        )
+        or os.getenv(
+            "FATEPLANNER_DATA_DIR"
+        )
+    ):
+        return False
+
+    source = (
+        LEGACY_APP_DATA_DIR
+    )
+
+    destination = (
+        get_app_data_directory()
+    )
+
+    if (
+        source.resolve()
+        == destination.resolve()
+    ):
+        return False
+
+    if not source.exists():
+        return False
+
+    destination_database = (
+        destination
+        / DATABASE_FILENAME
+    )
+
+    # A database already exists at the new location,
+    # so it wins. Never overwrite it automatically.
+    if destination_database.exists():
+        return False
+
+    destination.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    for item in source.iterdir():
+        target = (
+            destination
+            / item.name
+        )
+
+        if target.exists():
+            continue
+
+        if item.is_dir():
+            shutil.copytree(
+                item,
+                target,
+            )
+
+        else:
+            shutil.copy2(
+                item,
+                target,
+            )
+
+    return True
 
 
 def get_connection(
@@ -48,6 +231,9 @@ def get_connection(
 def initialize_database(
     database_path: str | Path | None = None,
 ) -> None:
+    if database_path is None:
+        migrate_legacy_app_data()
+
     with get_connection(
         database_path
     ) as connection:
