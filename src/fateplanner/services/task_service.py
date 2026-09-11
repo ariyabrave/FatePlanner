@@ -1,6 +1,8 @@
 from pathlib import Path
 
-from fateplanner.database.connection import get_connection
+from fateplanner.database.connection import (
+    get_connection,
+)
 
 
 VALID_PRIORITIES = {
@@ -24,18 +26,26 @@ def create_task(
     description = description.strip()
 
     if not title:
-        raise ValueError("Task title cannot be empty.")
+        raise ValueError(
+            "Task title cannot be empty."
+        )
 
     if priority not in VALID_PRIORITIES:
-        raise ValueError("Invalid task priority.")
+        raise ValueError(
+            "Invalid task priority."
+        )
 
     if start_time and end_time:
         if end_time <= start_time:
             raise ValueError(
-                "End time must be later than start time."
+                "End time must be later "
+                "than start time."
             )
 
-    with get_connection(database_path) as connection:
+    with get_connection(
+        database_path
+    ) as connection:
+
         cursor = connection.execute(
             """
             INSERT INTO tasks (
@@ -62,13 +72,18 @@ def create_task(
 
         connection.commit()
 
-        return int(cursor.lastrowid)
+        return int(
+            cursor.lastrowid
+        )
 
 
 def get_tasks(
     database_path: str | Path | None = None,
 ):
-    with get_connection(database_path) as connection:
+    with get_connection(
+        database_path
+    ) as connection:
+
         return connection.execute(
             """
             SELECT
@@ -100,7 +115,10 @@ def get_tasks_for_date(
     date: str,
     database_path: str | Path | None = None,
 ):
-    with get_connection(database_path) as connection:
+    with get_connection(
+        database_path
+    ) as connection:
+
         return connection.execute(
             """
             SELECT
@@ -131,7 +149,10 @@ def set_task_completed(
     completed: bool,
     database_path: str | Path | None = None,
 ) -> None:
-    with get_connection(database_path) as connection:
+    with get_connection(
+        database_path
+    ) as connection:
+
         connection.execute(
             """
             UPDATE tasks
@@ -151,7 +172,10 @@ def delete_task(
     task_id: int,
     database_path: str | Path | None = None,
 ) -> None:
-    with get_connection(database_path) as connection:
+    with get_connection(
+        database_path
+    ) as connection:
+
         connection.execute(
             """
             DELETE FROM tasks
@@ -166,14 +190,19 @@ def delete_task(
 def get_task_progress(
     database_path: str | Path | None = None,
 ) -> tuple[int, int, int]:
-    with get_connection(database_path) as connection:
+
+    with get_connection(
+        database_path
+    ) as connection:
+
         row = connection.execute(
             """
             SELECT
                 COUNT(*) AS total,
                 SUM(
                     CASE
-                        WHEN completed = 1 THEN 1
+                        WHEN completed = 1
+                        THEN 1
                         ELSE 0
                     END
                 ) AS completed
@@ -181,30 +210,45 @@ def get_task_progress(
             """
         ).fetchone()
 
-    total = int(row["total"])
-    completed = int(row["completed"] or 0)
-
-    percentage = (
-        round((completed / total) * 100)
-        if total > 0
-        else 0
+    total = int(
+        row["total"]
     )
 
-    return total, completed, percentage
+    completed = int(
+        row["completed"] or 0
+    )
+
+    if total:
+        percentage = round(
+            completed / total * 100
+        )
+    else:
+        percentage = 0
+
+    return (
+        total,
+        completed,
+        percentage,
+    )
 
 
 def get_task_progress_for_date(
     date: str,
     database_path: str | Path | None = None,
 ) -> tuple[int, int, int]:
-    with get_connection(database_path) as connection:
+
+    with get_connection(
+        database_path
+    ) as connection:
+
         row = connection.execute(
             """
             SELECT
                 COUNT(*) AS total,
                 SUM(
                     CASE
-                        WHEN completed = 1 THEN 1
+                        WHEN completed = 1
+                        THEN 1
                         ELSE 0
                     END
                 ) AS completed
@@ -214,13 +258,23 @@ def get_task_progress_for_date(
             (date,),
         ).fetchone()
 
-    total = int(row["total"])
-    completed = int(row["completed"] or 0)
-
-    percentage = (
-        round((completed / total) * 100)
-        if total > 0
-        else 0
+    total = int(
+        row["total"]
     )
 
-    return total, completed, percentage
+    completed = int(
+        row["completed"] or 0
+    )
+
+    if total:
+        percentage = round(
+            completed / total * 100
+        )
+    else:
+        percentage = 0
+
+    return (
+        total,
+        completed,
+        percentage,
+    )

@@ -19,9 +19,16 @@ def get_database_path() -> Path:
 def get_connection(
     database_path: str | Path | None = None,
 ) -> sqlite3.Connection:
-    path = Path(database_path) if database_path else get_database_path()
+    path = (
+        Path(database_path)
+        if database_path
+        else get_database_path()
+    )
 
-    path.parent.mkdir(parents=True, exist_ok=True)
+    path.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
 
     connection = sqlite3.connect(path)
     connection.row_factory = sqlite3.Row
@@ -59,19 +66,26 @@ def initialize_database(
 
         if "start_time" not in columns:
             connection.execute(
-                "ALTER TABLE tasks ADD COLUMN start_time TEXT"
+                """
+                ALTER TABLE tasks
+                ADD COLUMN start_time TEXT
+                """
             )
 
         if "end_time" not in columns:
             connection.execute(
-                "ALTER TABLE tasks ADD COLUMN end_time TEXT"
+                """
+                ALTER TABLE tasks
+                ADD COLUMN end_time TEXT
+                """
             )
 
         if "all_day" not in columns:
             connection.execute(
                 """
                 ALTER TABLE tasks
-                ADD COLUMN all_day INTEGER NOT NULL DEFAULT 0
+                ADD COLUMN all_day INTEGER
+                NOT NULL DEFAULT 0
                 """
             )
 

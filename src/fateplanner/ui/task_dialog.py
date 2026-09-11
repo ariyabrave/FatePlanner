@@ -1,4 +1,8 @@
-from PySide6.QtCore import QDate, QTime, Qt
+from PySide6.QtCore import (
+    QDate,
+    QTime,
+    Qt,
+)
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -24,16 +28,26 @@ class TaskDialog(QDialog):
     ):
         super().__init__(parent)
 
-        self.setWindowTitle("افزودن کار جدید")
-        self.setMinimumWidth(450)
+        self.setWindowTitle(
+            "افزودن کار جدید"
+        )
+
+        self.setMinimumWidth(
+            450
+        )
 
         self.setLayoutDirection(
             Qt.LayoutDirection.RightToLeft
         )
 
-        main_layout = QVBoxLayout(self)
+        main_layout = QVBoxLayout(
+            self
+        )
 
-        title_label = QLabel("کار جدید")
+        title_label = QLabel(
+            "کار جدید"
+        )
+
         title_label.setStyleSheet(
             """
             font-size: 22px;
@@ -41,25 +55,40 @@ class TaskDialog(QDialog):
             """
         )
 
-        main_layout.addWidget(title_label)
+        main_layout.addWidget(
+            title_label
+        )
 
-        form_layout = QFormLayout()
+        form_layout = (
+            QFormLayout()
+        )
 
         # Title
-        self.title_input = QLineEdit()
+        self.title_input = (
+            QLineEdit()
+        )
+
         self.title_input.setPlaceholderText(
             "مثلاً مطالعه زبان انگلیسی"
         )
 
         # Description
-        self.description_input = QTextEdit()
+        self.description_input = (
+            QTextEdit()
+        )
+
         self.description_input.setPlaceholderText(
             "توضیحات بیشتر..."
         )
-        self.description_input.setMaximumHeight(100)
+
+        self.description_input.setMaximumHeight(
+            100
+        )
 
         # Priority
-        self.priority_input = QComboBox()
+        self.priority_input = (
+            QComboBox()
+        )
 
         self.priority_input.addItem(
             "کم",
@@ -76,21 +105,31 @@ class TaskDialog(QDialog):
             "high",
         )
 
-        self.priority_input.setCurrentIndex(1)
+        self.priority_input.setCurrentIndex(
+            1
+        )
 
         # Date
         self.has_due_date = QCheckBox(
             "برای این کار تاریخ تعیین شود"
         )
 
-        self.due_date_input = QDateEdit()
-        self.due_date_input.setCalendarPopup(True)
+        self.due_date_input = (
+            QDateEdit()
+        )
+
+        self.due_date_input.setCalendarPopup(
+            True
+        )
 
         if default_date is not None:
             self.due_date_input.setDate(
                 default_date
             )
-            self.has_due_date.setChecked(True)
+
+            self.has_due_date.setChecked(
+                True
+            )
 
         else:
             self.due_date_input.setDate(
@@ -103,19 +142,27 @@ class TaskDialog(QDialog):
         )
 
         # Start time
-        self.start_time_input = QTimeEdit()
+        self.start_time_input = (
+            QTimeEdit()
+        )
+
         self.start_time_input.setDisplayFormat(
             "HH:mm"
         )
+
         self.start_time_input.setTime(
             QTime(9, 0)
         )
 
         # End time
-        self.end_time_input = QTimeEdit()
+        self.end_time_input = (
+            QTimeEdit()
+        )
+
         self.end_time_input.setDisplayFormat(
             "HH:mm"
         )
+
         self.end_time_input.setTime(
             QTime(10, 0)
         )
@@ -168,15 +215,25 @@ class TaskDialog(QDialog):
             self.end_time_input,
         )
 
-        main_layout.addLayout(form_layout)
+        main_layout.addLayout(
+            form_layout
+        )
 
-        # Buttons
-        button_layout = QHBoxLayout()
+        button_layout = (
+            QHBoxLayout()
+        )
 
-        save_button = QPushButton("ذخیره")
-        cancel_button = QPushButton("انصراف")
+        save_button = QPushButton(
+            "ذخیره"
+        )
 
-        save_button.setDefault(True)
+        cancel_button = QPushButton(
+            "انصراف"
+        )
+
+        save_button.setDefault(
+            True
+        )
 
         save_button.clicked.connect(
             self.validate_and_accept
@@ -186,18 +243,28 @@ class TaskDialog(QDialog):
             self.reject
         )
 
-        button_layout.addWidget(save_button)
-        button_layout.addWidget(cancel_button)
+        button_layout.addWidget(
+            save_button
+        )
 
-        main_layout.addLayout(button_layout)
+        button_layout.addWidget(
+            cancel_button
+        )
+
+        main_layout.addLayout(
+            button_layout
+        )
 
         self.update_schedule_state()
 
         self.title_input.setFocus()
 
-    def update_schedule_state(self):
+    def update_schedule_state(
+        self,
+    ):
         has_date = (
-            self.has_due_date.isChecked()
+            self.has_due_date
+            .isChecked()
         )
 
         self.due_date_input.setEnabled(
@@ -215,7 +282,8 @@ class TaskDialog(QDialog):
 
         time_enabled = (
             has_date
-            and not self.all_day_input.isChecked()
+            and not self.all_day_input
+            .isChecked()
         )
 
         self.start_time_input.setEnabled(
@@ -226,8 +294,14 @@ class TaskDialog(QDialog):
             time_enabled
         )
 
-    def validate_and_accept(self):
-        if not self.title_input.text().strip():
+    def validate_and_accept(
+        self,
+    ):
+        if not (
+            self.title_input
+            .text()
+            .strip()
+        ):
             QMessageBox.warning(
                 self,
                 "عنوان خالی",
@@ -237,10 +311,18 @@ class TaskDialog(QDialog):
 
         if (
             self.has_due_date.isChecked()
-            and not self.all_day_input.isChecked()
+            and not self.all_day_input
+            .isChecked()
         ):
-            start = self.start_time_input.time()
-            end = self.end_time_input.time()
+            start = (
+                self.start_time_input
+                .time()
+            )
+
+            end = (
+                self.end_time_input
+                .time()
+            )
 
             if end <= start:
                 QMessageBox.warning(
@@ -252,17 +334,24 @@ class TaskDialog(QDialog):
 
         self.accept()
 
-    def get_task_data(self) -> dict:
+    def get_task_data(
+        self,
+    ) -> dict:
         due_date = None
         start_time = None
         end_time = None
         all_day = False
 
-        if self.has_due_date.isChecked():
+        if (
+            self.has_due_date
+            .isChecked()
+        ):
             due_date = (
                 self.due_date_input
                 .date()
-                .toString("yyyy-MM-dd")
+                .toString(
+                    "yyyy-MM-dd"
+                )
             )
 
             all_day = (

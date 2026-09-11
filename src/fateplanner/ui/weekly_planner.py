@@ -1,0 +1,515 @@
+from datetime import (
+    date,
+    timedelta,
+)
+
+from PySide6.QtCore import (
+    QDate,
+    Qt,
+)
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QMessageBox,
+    QPushButton,
+    QScrollArea,
+    QVBoxLayout,
+    QWidget,
+)
+
+from fateplanner.services.task_service import (
+    create_task,
+    get_tasks_for_date,
+    set_task_completed,
+)
+from fateplanner.ui.task_dialog import (
+    TaskDialog,
+)
+from fateplanner.utils.date_utils import (
+    PERSIAN_WEEKDAY_NAMES,
+    format_jalali_short,
+    format_jalali_week_range,
+    get_persian_week,
+)
+
+
+class WeeklyPlanner(QWidget):
+    def __init__(
+        self,
+        parent=None,
+        on_data_changed=None,
+    ):
+        super().__init__(parent)
+
+        self.anchor_date = (
+            date.today()
+        )
+
+        self.on_data_changed = (
+            on_data_changed
+        )
+
+        self.main_layout = (
+            QVBoxLayout(self)
+        )
+
+        # Page title
+        title = QLabel(
+            "تقویم و برنامه‌ریزی"
+        )
+
+        title.setStyleSheet(
+            """
+            font-size: 30px;
+            font-weight: bold;
+            """
+        )
+
+        self.main_layout.addWidget(
+            title
+        )
+
+        # Week navigation
+        navigation_layout = (
+            QHBoxLayout()
+        )
+
+        self.previous_button = (
+            QPushButton(
+                "هفته قبل"
+            )
+        )
+
+        self.today_button = (
+            QPushButton(
+                "امروز"
+            )
+        )
+
+        self.next_button = (
+            QPushButton(
+                "هفته بعد"
+            )
+        )
+
+        self.week_label = QLabel()
+
+        self.week_label.setAlignment(
+            Qt.AlignmentFlag.AlignCenter
+        )
+
+        self.week_label.setStyleSheet(
+            """
+            font-size: 18px;
+            font-weight: bold;
+            """
+        )
+
+        self.previous_button.clicked.connect(
+            self.previous_week
+        )
+
+        self.today_button.clicked.connect(
+            self.go_to_today
+        )
+
+        self.next_button.clicked.connect(
+            self.next_week
+        )
+
+        navigation_layout.addWidget(
+            self.previous_button
+        )
+
+        navigation_layout.addWidget(
+            self.today_button
+        )
+
+        navigation_layout.addWidget(
+            self.week_label,
+            1,
+        )
+
+        navigation_layout.addWidget(
+            self.next_button
+        )
+
+        self.main_layout.addLayout(
+            navigation_layout
+        )
+
+        # Day cards
+        self.days_container = (
+            QWidget()
+        )
+
+        self.days_layout = (
+            QHBoxLayout(
+                self.days_container
+            )
+        )
+
+        self.days_layout.setAlignment(
+            Qt.AlignmentFlag.AlignTop
+        )
+
+        scroll_area = QScrollArea()
+
+        scroll_area.setWidgetResizable(
+            True
+        )
+
+        scroll_area.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
+
+        scroll_area.setWidget(
+            self.days_container
+        )
+
+        self.main_layout.addWidget(
+            scroll_area,
+            1,
+        )
+
+        self.refresh()
+
+    def refresh(
+        self,
+    ):
+        self.clear_days()
+
+        week = get_persian_week(
+            self.anchor_date
+        )
+
+        self.week_label.setText(
+            format_jalali_week_range(
+                week[0],
+                week[-1],
+            )
+        )
+
+        for day in week:
+            card = (
+                self.create_day_card(
+                    day
+                )
+            )
+
+            self.days_layout.addWidget(
+                card
+            )
+
+    def create_day_card(
+        self,
+        day: date,
+    ) -> QFrame:
+
+        frame = QFrame()
+
+        frame.setMinimumWidth(
+            175
+        )
+
+        frame.setStyleSheet(
+            """
+            QFrame {
+                border: 1px solid #d8d8d8;
+                border-radius: 10px;
+                padding: 8px;
+            }
+            """
+        )
+
+        layout = QVBoxLayout(
+            frame
+        )
+
+        weekday_label = QLabel(
+            PERSIAN_WEEKDAY_NAMES[
+                day.weekday()
+            ]
+        )
+
+        weekday_label.setAlignment(
+            Qt.AlignmentFlag.AlignCenter
+        )
+
+        weekday_label.setStyleSheet(
+            """
+            font-size: 18px;
+            font-weight: bold;
+            """
+        )
+
+        date_label = QLabel(
+            format_jalali_short(
+                day
+            )
+        )
+
+        date_label.setAlignment(
+            Qt.AlignmentFlag.AlignCenter
+        )
+
+        date_label.setStyleSheet(
+            """
+            font-size: 14px;
+            """
+        )
+
+        layout.addWidget(
+            weekday_label
+        )
+
+        layout.addWidget(
+            date_label
+        )
+
+        if day == date.today():
+            today_label = QLabel(
+                "امروز"
+            )
+
+            today_label.setAlignment(
+                Qt.AlignmentFlag.AlignCenter
+            )
+
+            today_label.setStyleSheet(
+                """
+                font-weight: bold;
+                """
+            )
+
+            layout.addWidget(
+                today_label
+            )
+
+        tasks = get_tasks_for_date(
+            day.isoformat()
+        )
+
+        if not tasks:
+            empty_label = QLabel(
+                "برنامه‌ای ثبت نشده"
+            )
+
+            empty_label.setWordWrap(
+                True
+            )
+
+            empty_label.setAlignment(
+                Qt.AlignmentFlag.AlignCenter
+            )
+
+            layout.addWidget(
+                empty_label
+            )
+
+        else:
+            for task in tasks:
+                layout.addWidget(
+                    self.create_task_widget(
+                        task
+                    )
+                )
+
+        layout.addStretch()
+
+        add_button = QPushButton(
+            "＋ افزودن"
+        )
+
+        add_button.clicked.connect(
+            lambda _,
+            selected_day=day:
+            self.open_task_dialog(
+                selected_day
+            )
+        )
+
+        layout.addWidget(
+            add_button
+        )
+
+        return frame
+
+    def create_task_widget(
+        self,
+        task,
+    ) -> QWidget:
+
+        widget = QWidget()
+
+        layout = QVBoxLayout(
+            widget
+        )
+
+        layout.setContentsMargins(
+            2,
+            2,
+            2,
+            2,
+        )
+
+        checkbox = QCheckBox(
+            task["title"]
+        )
+
+        checkbox.setChecked(
+            bool(task["completed"])
+        )
+
+        checkbox.toggled.connect(
+            lambda checked,
+            task_id=task["id"]:
+            self.toggle_task(
+                task_id,
+                checked,
+            )
+        )
+
+        layout.addWidget(
+            checkbox
+        )
+
+        if task["all_day"]:
+            schedule_text = (
+                "تمام روز"
+            )
+
+        elif (
+            task["start_time"]
+            and task["end_time"]
+        ):
+            schedule_text = (
+                f"{task['start_time']}"
+                f" - "
+                f"{task['end_time']}"
+            )
+
+        elif task["start_time"]:
+            schedule_text = (
+                task["start_time"]
+            )
+
+        else:
+            schedule_text = (
+                "بدون ساعت"
+            )
+
+        schedule_label = QLabel(
+            schedule_text
+        )
+
+        schedule_label.setStyleSheet(
+            """
+            font-size: 11px;
+            color: #777;
+            """
+        )
+
+        layout.addWidget(
+            schedule_label
+        )
+
+        return widget
+
+    def open_task_dialog(
+        self,
+        selected_day: date,
+    ):
+        qt_date = QDate(
+            selected_day.year,
+            selected_day.month,
+            selected_day.day,
+        )
+
+        dialog = TaskDialog(
+            self,
+            default_date=qt_date,
+        )
+
+        if not dialog.exec():
+            return
+
+        try:
+            create_task(
+                **dialog.get_task_data()
+            )
+
+        except ValueError as error:
+            QMessageBox.warning(
+                self,
+                "خطا",
+                str(error),
+            )
+            return
+
+        self.refresh()
+
+        if self.on_data_changed:
+            self.on_data_changed()
+
+    def toggle_task(
+        self,
+        task_id: int,
+        completed: bool,
+    ):
+        set_task_completed(
+            task_id,
+            completed,
+        )
+
+        self.refresh()
+
+        if self.on_data_changed:
+            self.on_data_changed()
+
+    def previous_week(
+        self,
+    ):
+        self.anchor_date -= timedelta(
+            days=7
+        )
+
+        self.refresh()
+
+    def next_week(
+        self,
+    ):
+        self.anchor_date += timedelta(
+            days=7
+        )
+
+        self.refresh()
+
+    def go_to_today(
+        self,
+    ):
+        self.anchor_date = (
+            date.today()
+        )
+
+        self.refresh()
+
+    def clear_days(
+        self,
+    ):
+        while (
+            self.days_layout.count()
+        ):
+            item = (
+                self.days_layout
+                .takeAt(0)
+            )
+
+            widget = (
+                item.widget()
+            )
+
+            if widget is not None:
+                widget.deleteLater()
