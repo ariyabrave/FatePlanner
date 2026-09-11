@@ -52,6 +52,10 @@ def initialize_database(
         database_path
     ) as connection:
 
+        # ==================================
+        # Tasks
+        # ==================================
+
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS tasks (
@@ -217,6 +221,82 @@ def initialize_database(
             )
             WHERE recurring_template_id
                 IS NOT NULL
+            """
+        )
+
+        # ==================================
+        # Habits
+        # ==================================
+
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS habits (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+                title TEXT NOT NULL,
+
+                description TEXT,
+
+                schedule_type TEXT NOT NULL
+                    DEFAULT 'daily',
+
+                weekdays TEXT,
+
+                start_date TEXT NOT NULL,
+
+                archived INTEGER NOT NULL
+                    DEFAULT 0,
+
+                created_at TEXT NOT NULL
+                    DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+
+        # ==================================
+        # Habit completion history
+        # ==================================
+
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS habit_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+                habit_id INTEGER NOT NULL,
+
+                log_date TEXT NOT NULL,
+
+                completed INTEGER NOT NULL
+                    DEFAULT 1,
+
+                created_at TEXT NOT NULL
+                    DEFAULT CURRENT_TIMESTAMP,
+
+                FOREIGN KEY (habit_id)
+                    REFERENCES habits(id)
+                    ON DELETE CASCADE,
+
+                UNIQUE(
+                    habit_id,
+                    log_date
+                )
+            )
+            """
+        )
+
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS
+            idx_habit_logs_habit_id
+            ON habit_logs(habit_id)
+            """
+        )
+
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS
+            idx_habit_logs_date
+            ON habit_logs(log_date)
             """
         )
 

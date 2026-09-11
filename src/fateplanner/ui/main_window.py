@@ -43,6 +43,9 @@ from fateplanner.services.task_service import (
     set_task_completed,
     update_task,
 )
+from fateplanner.ui.habit_page import (
+    HabitPage,
+)
 from fateplanner.ui.recurring_series_dialog import (
     RecurringSeriesDialog,
 )
@@ -137,6 +140,14 @@ class MainWindow(QMainWindow):
             ),
         )
 
+        self.tasks_page = (
+            self.create_placeholder_page(
+                "کارها"
+            )
+        )
+
+        self.habits_page = HabitPage()
+
         self.pages.addWidget(
             self.home_page
         )
@@ -149,9 +160,15 @@ class MainWindow(QMainWindow):
             self.weekly_page
         )
 
+        self.pages.addWidget(
+            self.tasks_page
+        )
+
+        self.pages.addWidget(
+            self.habits_page
+        )
+
         remaining_pages = [
-            "کارها",
-            "عادت‌ها",
             "مطالعه",
             "امور مالی",
             "گزارش‌ها و پیشرفت",
@@ -184,9 +201,9 @@ class MainWindow(QMainWindow):
 
         self.refresh_all()
 
-    # =========================
+    # ==================================
     # Navigation
-    # =========================
+    # ==================================
 
     def change_page(
         self,
@@ -205,9 +222,12 @@ class MainWindow(QMainWindow):
         elif index == 2:
             self.weekly_page.refresh()
 
-    # =========================
+        elif index == 4:
+            self.habits_page.refresh()
+
+    # ==================================
     # Home
-    # =========================
+    # ==================================
 
     def create_home_page(
         self,
@@ -344,9 +364,9 @@ class MainWindow(QMainWindow):
 
         return page
 
-    # =========================
+    # ==================================
     # Today
-    # =========================
+    # ==================================
 
     def create_today_page(
         self,
@@ -481,9 +501,9 @@ class MainWindow(QMainWindow):
 
         return page
 
-    # =========================
+    # ==================================
     # Placeholder
-    # =========================
+    # ==================================
 
     def create_placeholder_page(
         self,
@@ -522,9 +542,9 @@ class MainWindow(QMainWindow):
 
         return page
 
-    # =========================
+    # ==================================
     # New tasks
-    # =========================
+    # ==================================
 
     def open_general_task_dialog(
         self,
@@ -634,9 +654,9 @@ class MainWindow(QMainWindow):
 
         self.refresh_all()
 
-    # =========================
-    # Edit
-    # =========================
+    # ==================================
+    # Edit task
+    # ==================================
 
     def edit_task(
         self,
@@ -656,10 +676,8 @@ class MainWindow(QMainWindow):
         )
 
         if template_id:
-            scope = (
-                self.ask_recurring_scope(
-                    "ویرایش"
-                )
+            scope = self.ask_recurring_scope(
+                "ویرایش"
             )
 
             if scope is None:
@@ -754,9 +772,9 @@ class MainWindow(QMainWindow):
 
         self.refresh_all()
 
-    # =========================
+    # ==================================
     # Subtasks
-    # =========================
+    # ==================================
 
     def add_subtask(
         self,
@@ -786,9 +804,9 @@ class MainWindow(QMainWindow):
 
         self.refresh_all()
 
-    # =========================
+    # ==================================
     # Refresh
-    # =========================
+    # ==================================
 
     def refresh_all(
         self,
@@ -805,6 +823,12 @@ class MainWindow(QMainWindow):
             "weekly_page",
         ):
             self.weekly_page.refresh()
+
+        if hasattr(
+            self,
+            "habits_page",
+        ):
+            self.habits_page.refresh()
 
     def refresh_home(
         self,
@@ -922,9 +946,9 @@ class MainWindow(QMainWindow):
                 f"{total} کار امروز انجام شده"
             )
 
-    # =========================
-    # Task cards
-    # =========================
+    # ==================================
+    # Task card
+    # ==================================
 
     def create_task_widget(
         self,
@@ -1240,9 +1264,9 @@ class MainWindow(QMainWindow):
 
         return widget
 
-    # =========================
-    # Recurring scope
-    # =========================
+    # ==================================
+    # Recurring task scope
+    # ==================================
 
     def ask_recurring_scope(
         self,
@@ -1299,9 +1323,9 @@ class MainWindow(QMainWindow):
 
         return None
 
-    # =========================
+    # ==================================
     # Actions
-    # =========================
+    # ==================================
 
     def toggle_task(
         self,
@@ -1333,10 +1357,8 @@ class MainWindow(QMainWindow):
         )
 
         if template_id:
-            scope = (
-                self.ask_recurring_scope(
-                    "حذف"
-                )
+            scope = self.ask_recurring_scope(
+                "حذف"
             )
 
             if scope is None:
@@ -1394,9 +1416,9 @@ class MainWindow(QMainWindow):
 
         self.refresh_all()
 
-    # =========================
+    # ==================================
     # Helpers
-    # =========================
+    # ==================================
 
     def clear_layout(
         self,

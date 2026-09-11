@@ -85,14 +85,35 @@
 - [x] Preserve completed history
 - [x] Final recurrence tests
 
-## Milestone 5 — Habits
+## ⏳ Milestone 5 — Habits + Streaks
 
-- [ ] Create habits
-- [ ] Daily completion
-- [ ] Habit streaks
-- [ ] Best streak
-- [ ] Weekly statistics
+### ✅ 5A — Habit Foundation + Streaks
+
+- [x] Habit database model
+- [x] Habit completion history
+- [x] Daily habits
+- [x] Selected weekday habits
+- [x] Persian habit creation UI
+- [x] Edit habits
+- [x] Delete habits
+- [x] Daily completion checkbox
+- [x] Today's habit progress
+- [x] Current streak
+- [x] Best streak
+- [x] Overall completion percentage
+- [x] Persistent history
+- [x] Tests
+
+### ⏳ 5B — Habit History + Heatmap
+
+- [ ] View previous days
+- [ ] Manually correct past completions
+- [ ] Jalali month navigation
 - [ ] Monthly habit heatmap
+- [ ] Monthly completion percentage
+- [ ] Habit history view
+- [ ] Better streak visualization
+- [ ] Final habit tests
 
 ## Milestone 6 — Study Planner
 
