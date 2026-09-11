@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QLabel,
     QMessageBox,
+    QProgressBar,
     QPushButton,
     QScrollArea,
     QTabWidget,
@@ -18,18 +19,27 @@ from PySide6.QtWidgets import (
 )
 
 from fateplanner.services.finance_service import (
+    create_finance_budget,
     create_finance_category,
     create_finance_transaction,
+    delete_finance_budget,
     delete_finance_category,
     delete_finance_transaction,
     format_money,
+    get_finance_budget,
+    get_finance_budget_overview,
+    get_finance_budget_statuses,
     get_finance_categories,
     get_finance_category,
     get_finance_summary_between,
     get_finance_transaction,
     get_finance_transactions_between,
+    update_finance_budget,
     update_finance_category,
     update_finance_transaction,
+)
+from fateplanner.ui.finance_budget_dialog import (
+    FinanceBudgetDialog,
 )
 from fateplanner.ui.finance_category_dialog import (
     FinanceCategoryDialog,
@@ -96,49 +106,9 @@ class FinancePage(QWidget):
             self.date_label
         )
 
-        self.tabs = QTabWidget()
-
-        self.ledger_tab = (
-            self.create_ledger_tab()
-        )
-
-        self.categories_tab = (
-            self.create_categories_tab()
-        )
-
-        self.tabs.addTab(
-            self.ledger_tab,
-            "تراکنش‌ها",
-        )
-
-        self.tabs.addTab(
-            self.categories_tab,
-            "دسته‌بندی‌ها",
-        )
-
-        self.tabs.currentChanged.connect(
-            self.on_tab_changed
-        )
-
-        main_layout.addWidget(
-            self.tabs,
-            1,
-        )
-
-        self.refresh()
-
-    # ==================================
-    # Ledger
-    # ==================================
-
-    def create_ledger_tab(
-        self,
-    ):
-        tab = QWidget()
-
-        layout = QVBoxLayout(
-            tab
-        )
+        # ==================================
+        # Shared month navigation
+        # ==================================
 
         navigation = QHBoxLayout()
 
@@ -196,11 +166,67 @@ class FinancePage(QWidget):
             next_button
         )
 
-        layout.addLayout(
+        main_layout.addLayout(
             navigation
         )
 
-        # Summary
+        # ==================================
+        # Tabs
+        # ==================================
+
+        self.tabs = QTabWidget()
+
+        self.ledger_tab = (
+            self.create_ledger_tab()
+        )
+
+        self.categories_tab = (
+            self.create_categories_tab()
+        )
+
+        self.budgets_tab = (
+            self.create_budgets_tab()
+        )
+
+        self.tabs.addTab(
+            self.ledger_tab,
+            "تراکنش‌ها",
+        )
+
+        self.tabs.addTab(
+            self.categories_tab,
+            "دسته‌بندی‌ها",
+        )
+
+        self.tabs.addTab(
+            self.budgets_tab,
+            "بودجه‌ها",
+        )
+
+        self.tabs.currentChanged.connect(
+            self.on_tab_changed
+        )
+
+        main_layout.addWidget(
+            self.tabs,
+            1,
+        )
+
+        self.refresh()
+
+    # ==================================
+    # Ledger
+    # ==================================
+
+    def create_ledger_tab(
+        self,
+    ):
+        tab = QWidget()
+
+        layout = QVBoxLayout(
+            tab
+        )
+
         summary_frame = QFrame()
 
         summary_frame.setStyleSheet(
@@ -253,7 +279,6 @@ class FinancePage(QWidget):
             summary_frame
         )
 
-        # Add buttons
         actions = QHBoxLayout()
 
         income_button = QPushButton(
@@ -348,29 +373,6 @@ class FinancePage(QWidget):
 
         return tab
 
-    def create_summary_label(
-        self,
-    ):
-        label = QLabel()
-
-        label.setAlignment(
-            Qt.AlignmentFlag.AlignCenter
-        )
-
-        label.setWordWrap(
-            True
-        )
-
-        label.setStyleSheet(
-            """
-            font-size: 15px;
-            font-weight: bold;
-            padding: 8px;
-            """
-        )
-
-        return label
-
     # ==================================
     # Categories
     # ==================================
@@ -448,6 +450,155 @@ class FinancePage(QWidget):
         return tab
 
     # ==================================
+    # Budgets
+    # ==================================
+
+    def create_budgets_tab(
+        self,
+    ):
+        tab = QWidget()
+
+        layout = QVBoxLayout(
+            tab
+        )
+
+        overview_frame = QFrame()
+
+        overview_frame.setStyleSheet(
+            """
+            QFrame {
+                border: 1px solid #d8d8d8;
+                border-radius: 10px;
+                padding: 8px;
+            }
+            """
+        )
+
+        overview_layout = QHBoxLayout(
+            overview_frame
+        )
+
+        self.total_budget_label = (
+            self.create_summary_label()
+        )
+
+        self.budget_spent_label = (
+            self.create_summary_label()
+        )
+
+        self.budget_remaining_label = (
+            self.create_summary_label()
+        )
+
+        self.overspent_label = (
+            self.create_summary_label()
+        )
+
+        overview_layout.addWidget(
+            self.total_budget_label
+        )
+
+        overview_layout.addWidget(
+            self.budget_spent_label
+        )
+
+        overview_layout.addWidget(
+            self.budget_remaining_label
+        )
+
+        overview_layout.addWidget(
+            self.overspent_label
+        )
+
+        layout.addWidget(
+            overview_frame
+        )
+
+        self.unbudgeted_label = QLabel()
+
+        self.unbudgeted_label.setAlignment(
+            Qt.AlignmentFlag.AlignCenter
+        )
+
+        self.unbudgeted_label.setStyleSheet(
+            """
+            font-size: 14px;
+            font-weight: bold;
+            padding: 6px;
+            """
+        )
+
+        layout.addWidget(
+            self.unbudgeted_label
+        )
+
+        add_button = QPushButton(
+            "＋ افزودن بودجه"
+        )
+
+        add_button.setMinimumHeight(
+            42
+        )
+
+        add_button.clicked.connect(
+            self.open_add_budget
+        )
+
+        layout.addWidget(
+            add_button
+        )
+
+        self.budgets_container = QWidget()
+
+        self.budgets_layout = QVBoxLayout(
+            self.budgets_container
+        )
+
+        self.budgets_layout.setAlignment(
+            Qt.AlignmentFlag.AlignTop
+        )
+
+        scroll = QScrollArea()
+
+        scroll.setWidgetResizable(
+            True
+        )
+
+        scroll.setWidget(
+            self.budgets_container
+        )
+
+        layout.addWidget(
+            scroll,
+            1,
+        )
+
+        return tab
+
+    def create_summary_label(
+        self,
+    ):
+        label = QLabel()
+
+        label.setAlignment(
+            Qt.AlignmentFlag.AlignCenter
+        )
+
+        label.setWordWrap(
+            True
+        )
+
+        label.setStyleSheet(
+            """
+            font-size: 15px;
+            font-weight: bold;
+            padding: 8px;
+            """
+        )
+
+        return label
+
+    # ==================================
     # Refresh
     # ==================================
 
@@ -489,6 +640,8 @@ class FinancePage(QWidget):
         )
 
         self.refresh_categories()
+
+        self.refresh_budgets()
 
     def refresh_summary(
         self,
@@ -708,43 +861,158 @@ class FinancePage(QWidget):
                 )
             )
 
-    def create_category_card(
+    def refresh_budgets(
         self,
-        category,
+    ):
+        self.clear_layout(
+            self.budgets_layout
+        )
+
+        overview = (
+            get_finance_budget_overview(
+                self.year,
+                self.month,
+            )
+        )
+
+        statuses = (
+            get_finance_budget_statuses(
+                self.year,
+                self.month,
+            )
+        )
+
+        self.total_budget_label.setText(
+            "کل بودجه\n"
+            + to_persian_digits(
+                format_money(
+                    overview[
+                        "total_budget"
+                    ]
+                )
+            )
+            + " تومان"
+        )
+
+        self.budget_spent_label.setText(
+            "هزینه از بودجه‌ها\n"
+            + to_persian_digits(
+                format_money(
+                    overview[
+                        "budgeted_spending"
+                    ]
+                )
+            )
+            + " تومان"
+        )
+
+        self.budget_remaining_label.setText(
+            "باقی‌مانده بودجه\n"
+            + to_persian_digits(
+                format_money(
+                    overview[
+                        "remaining"
+                    ]
+                )
+            )
+            + " تومان"
+        )
+
+        self.overspent_label.setText(
+            "بودجه‌های ردشده\n"
+            + to_persian_digits(
+                overview[
+                    "overspent_count"
+                ]
+            )
+        )
+
+        self.unbudgeted_label.setText(
+            "هزینه بدون بودجه: "
+            + to_persian_digits(
+                format_money(
+                    overview[
+                        "unbudgeted_expense"
+                    ]
+                )
+            )
+            + " تومان"
+        )
+
+        if not statuses:
+            label = QLabel(
+                (
+                    "برای این ماه هنوز "
+                    "بودجه‌ای تعیین نشده است."
+                )
+            )
+
+            label.setAlignment(
+                Qt.AlignmentFlag.AlignCenter
+            )
+
+            label.setStyleSheet(
+                """
+                padding: 25px;
+                color: #777;
+                """
+            )
+
+            self.budgets_layout.addWidget(
+                label
+            )
+
+            return
+
+        for status in statuses:
+            self.budgets_layout.addWidget(
+                self.create_budget_card(
+                    status
+                )
+            )
+
+    # ==================================
+    # Budget cards
+    # ==================================
+
+    def create_budget_card(
+        self,
+        status: dict,
     ):
         frame = QFrame()
 
+        if status["overspent"]:
+            border = "#c85a5a"
+        elif status["percentage"] >= 80:
+            border = "#d2a23b"
+        else:
+            border = "#8a8a8a"
+
         frame.setStyleSheet(
-            """
-            QFrame {
-                border: 1px solid #d8d8d8;
-                border-radius: 8px;
-                padding: 6px;
-            }
+            f"""
+            QFrame {{
+                border: 1px solid {border};
+                border-radius: 10px;
+                padding: 8px;
+            }}
             """
         )
 
-        layout = QHBoxLayout(
+        layout = QVBoxLayout(
             frame
         )
 
-        name = QLabel(
-            category["name"]
+        header = QHBoxLayout()
+
+        title = QLabel(
+            status["category_name"]
         )
 
-        name.setStyleSheet(
+        title.setStyleSheet(
             """
-            font-size: 15px;
+            font-size: 17px;
             font-weight: bold;
             """
-        )
-
-        type_label = QLabel(
-            TYPE_LABELS[
-                category[
-                    "transaction_type"
-                ]
-            ]
         )
 
         edit_button = QPushButton(
@@ -757,36 +1025,141 @@ class FinancePage(QWidget):
 
         edit_button.clicked.connect(
             lambda _,
-            category_id=category["id"]:
-            self.open_edit_category(
-                category_id
+            budget_id=status["id"]:
+            self.open_edit_budget(
+                budget_id
             )
         )
 
         delete_button.clicked.connect(
             lambda _,
-            category_id=category["id"]:
-            self.confirm_delete_category(
-                category_id
+            budget_id=status["id"]:
+            self.confirm_delete_budget(
+                budget_id
+            )
+        )
+
+        header.addWidget(
+            title,
+            1,
+        )
+
+        header.addWidget(
+            edit_button
+        )
+
+        header.addWidget(
+            delete_button
+        )
+
+        layout.addLayout(
+            header
+        )
+
+        amount_text = (
+            to_persian_digits(
+                format_money(
+                    status["amount"]
+                )
+            )
+        )
+
+        spent_text = (
+            to_persian_digits(
+                format_money(
+                    status["spent"]
+                )
+            )
+        )
+
+        remaining_text = (
+            to_persian_digits(
+                format_money(
+                    status["remaining"]
+                )
+            )
+        )
+
+        details = QLabel(
+            "بودجه: "
+            f"{amount_text} تومان"
+            "  |  "
+            "هزینه‌شده: "
+            f"{spent_text} تومان"
+            "  |  "
+            "باقی‌مانده: "
+            f"{remaining_text} تومان"
+        )
+
+        details.setWordWrap(
+            True
+        )
+
+        layout.addWidget(
+            details
+        )
+
+        percentage = int(
+            status["percentage"]
+        )
+
+        progress_label = QLabel(
+            "مصرف بودجه: "
+            f"{to_persian_digits(percentage)}٪"
+        )
+
+        layout.addWidget(
+            progress_label
+        )
+
+        progress = QProgressBar()
+
+        progress.setRange(
+            0,
+            100,
+        )
+
+        progress.setValue(
+            min(
+                100,
+                percentage,
             )
         )
 
         layout.addWidget(
-            name,
-            1,
+            progress
         )
 
-        layout.addWidget(
-            type_label
-        )
+        if status["overspent"]:
+            warning = QLabel(
+                "⚠️ این بودجه رد شده است."
+            )
 
-        layout.addWidget(
-            edit_button
-        )
+            warning.setStyleSheet(
+                """
+                font-weight: bold;
+                color: #b33a3a;
+                """
+            )
 
-        layout.addWidget(
-            delete_button
-        )
+            layout.addWidget(
+                warning
+            )
+
+        elif percentage >= 80:
+            warning = QLabel(
+                "⚠️ به سقف بودجه نزدیک شده‌اید."
+            )
+
+            warning.setStyleSheet(
+                """
+                font-weight: bold;
+                """
+            )
+
+            layout.addWidget(
+                warning
+            )
 
         return frame
 
@@ -909,6 +1282,88 @@ class FinancePage(QWidget):
     # Categories
     # ==================================
 
+    def create_category_card(
+        self,
+        category,
+    ):
+        frame = QFrame()
+
+        frame.setStyleSheet(
+            """
+            QFrame {
+                border: 1px solid #d8d8d8;
+                border-radius: 8px;
+                padding: 6px;
+            }
+            """
+        )
+
+        layout = QHBoxLayout(
+            frame
+        )
+
+        name = QLabel(
+            category["name"]
+        )
+
+        name.setStyleSheet(
+            """
+            font-size: 15px;
+            font-weight: bold;
+            """
+        )
+
+        type_label = QLabel(
+            TYPE_LABELS[
+                category[
+                    "transaction_type"
+                ]
+            ]
+        )
+
+        edit_button = QPushButton(
+            "ویرایش"
+        )
+
+        delete_button = QPushButton(
+            "حذف"
+        )
+
+        edit_button.clicked.connect(
+            lambda _,
+            category_id=category["id"]:
+            self.open_edit_category(
+                category_id
+            )
+        )
+
+        delete_button.clicked.connect(
+            lambda _,
+            category_id=category["id"]:
+            self.confirm_delete_category(
+                category_id
+            )
+        )
+
+        layout.addWidget(
+            name,
+            1,
+        )
+
+        layout.addWidget(
+            type_label
+        )
+
+        layout.addWidget(
+            edit_button
+        )
+
+        layout.addWidget(
+            delete_button
+        )
+
+        return frame
+
     def open_add_category(
         self,
         transaction_type: str,
@@ -1011,6 +1466,121 @@ class FinancePage(QWidget):
         self.refresh()
 
     # ==================================
+    # Budgets
+    # ==================================
+
+    def open_add_budget(
+        self,
+    ):
+        if not get_finance_categories(
+            "expense"
+        ):
+            QMessageBox.information(
+                self,
+                "دسته‌بندی هزینه",
+                (
+                    "ابتدا حداقل یک "
+                    "دسته‌بندی هزینه ایجاد کنید."
+                ),
+            )
+
+            self.tabs.setCurrentWidget(
+                self.categories_tab
+            )
+
+            return
+
+        dialog = FinanceBudgetDialog(
+            jalali_year=self.year,
+            jalali_month=self.month,
+            parent=self,
+        )
+
+        if not dialog.exec():
+            return
+
+        try:
+            create_finance_budget(
+                **dialog.get_data()
+            )
+
+        except ValueError as error:
+            QMessageBox.warning(
+                self,
+                "خطا",
+                str(error),
+            )
+
+            return
+
+        self.refresh()
+
+    def open_edit_budget(
+        self,
+        budget_id: int,
+    ):
+        budget = get_finance_budget(
+            budget_id
+        )
+
+        if budget is None:
+            return
+
+        dialog = FinanceBudgetDialog(
+            jalali_year=self.year,
+            jalali_month=self.month,
+            parent=self,
+            budget=budget,
+        )
+
+        if not dialog.exec():
+            return
+
+        try:
+            update_finance_budget(
+                budget_id=budget_id,
+                **dialog.get_data(),
+            )
+
+        except ValueError as error:
+            QMessageBox.warning(
+                self,
+                "خطا",
+                str(error),
+            )
+
+            return
+
+        self.refresh()
+
+    def confirm_delete_budget(
+        self,
+        budget_id: int,
+    ):
+        answer = QMessageBox.question(
+            self,
+            "حذف بودجه",
+            "آیا از حذف این بودجه مطمئن هستید؟",
+            (
+                QMessageBox.StandardButton.Yes
+                | QMessageBox.StandardButton.No
+            ),
+            QMessageBox.StandardButton.No,
+        )
+
+        if (
+            answer
+            != QMessageBox.StandardButton.Yes
+        ):
+            return
+
+        delete_finance_budget(
+            budget_id
+        )
+
+        self.refresh()
+
+    # ==================================
     # Month navigation
     # ==================================
 
@@ -1059,6 +1629,12 @@ class FinancePage(QWidget):
             is self.categories_tab
         ):
             self.refresh_categories()
+
+        elif (
+            self.tabs.widget(index)
+            is self.budgets_tab
+        ):
+            self.refresh_budgets()
 
     # ==================================
     # Helpers

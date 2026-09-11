@@ -196,13 +196,45 @@
 - [x] Persistent finance data
 - [x] Tests
 
-## Milestone 8 — Budgets + Savings
+## ⏳ Milestone 8 — Budgets + Savings Goals
 
-- [ ] Monthly budget
-- [ ] Category budgets
-- [ ] Budget progress
-- [ ] Savings goals
-- [ ] Savings progress
+### ✅ 8A — Monthly Budgets
+
+- [x] Monthly budget database
+- [x] Budgets by expense category
+- [x] Jalali year/month budgets
+- [x] Create budgets
+- [x] Edit budgets
+- [x] Delete budgets
+- [x] Duplicate budget prevention
+- [x] Real spending integration
+- [x] Budget progress percentage
+- [x] Remaining budget
+- [x] 80% budget warning
+- [x] Overspending warning
+- [x] Overspent amount support
+- [x] Monthly budget overview
+- [x] Unbudgeted expense detection
+- [x] Jalali month navigation
+- [x] Persistent budgets
+- [x] Tests
+
+### ⏳ 8B — Savings Goals
+
+- [ ] Savings goal database
+- [ ] Goal title
+- [ ] Target amount
+- [ ] Current saved amount
+- [ ] Optional target date
+- [ ] Add money to goal
+- [ ] Withdraw/correct saved money
+- [ ] Savings progress bar
+- [ ] Remaining amount
+- [ ] Goal completion
+- [ ] Edit goals
+- [ ] Delete goals
+- [ ] Persistent savings history
+- [ ] Final finance tests
 
 ## Milestone 9 — Analytics
 

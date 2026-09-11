@@ -1,8 +1,13 @@
+import sqlite3
+
 from datetime import date
 from pathlib import Path
 
 from fateplanner.database.connection import (
     get_connection,
+)
+from fateplanner.utils.date_utils import (
+    get_jalali_month_dates,
 )
 
 
@@ -53,6 +58,36 @@ def _validate_amount(
         )
 
     return amount
+
+
+def _validate_jalali_period(
+    jalali_year: int,
+    jalali_month: int,
+) -> tuple[int, int]:
+    jalali_year = int(
+        jalali_year
+    )
+
+    jalali_month = int(
+        jalali_month
+    )
+
+    if jalali_year < 1:
+        raise ValueError(
+            "Invalid Jalali year."
+        )
+
+    if not (
+        1 <= jalali_month <= 12
+    ):
+        raise ValueError(
+            "Invalid Jalali month."
+        )
+
+    return (
+        jalali_year,
+        jalali_month,
+    )
 
 
 # =====================================
@@ -214,23 +249,48 @@ def update_finance_category(
             existing["transaction_type"]
             != transaction_type
         ):
-            usage = connection.execute(
-                """
-                SELECT COUNT(*) AS total
-                FROM finance_transactions
-                WHERE category_id = ?
-                """,
-                (
-                    category_id,
-                ),
-            ).fetchone()
+            transaction_usage = (
+                connection.execute(
+                    """
+                    SELECT COUNT(*) AS total
+                    FROM finance_transactions
+                    WHERE category_id = ?
+                    """,
+                    (
+                        category_id,
+                    ),
+                ).fetchone()
+            )
 
-            if int(
-                usage["total"]
+            budget_usage = (
+                connection.execute(
+                    """
+                    SELECT COUNT(*) AS total
+                    FROM finance_budgets
+                    WHERE category_id = ?
+                    """,
+                    (
+                        category_id,
+                    ),
+                ).fetchone()
+            )
+
+            if (
+                int(
+                    transaction_usage[
+                        "total"
+                    ]
+                )
+                or int(
+                    budget_usage[
+                        "total"
+                    ]
+                )
             ):
                 raise ValueError(
-                    "A category already used by "
-                    "transactions cannot change type."
+                    "A category already used "
+                    "by transactions or budgets "
+                    "cannot change type."
                 )
 
         connection.execute(
@@ -581,7 +641,7 @@ def delete_finance_transaction(
 
 
 # =====================================
-# Summary
+# Finance summary
 # =====================================
 
 
@@ -656,9 +716,470 @@ def get_finance_summary_between(
             income - expense
         ),
         "total_transactions": int(
-            row["total_transactions"] or 0
+            row["total_transactions"]
+            or 0
         ),
     }
+
+
+# =====================================
+# Budgets
+# =====================================
+
+
+def _validate_expense_category(
+    connection,
+    category_id: int,
+) -> None:
+    category = connection.execute(
+        """
+        SELECT
+            id,
+            transaction_type
+        FROM finance_categories
+        WHERE id = ?
+        """,
+        (
+            category_id,
+        ),
+    ).fetchone()
+
+    if category is None:
+        raise ValueError(
+            "Finance category does not exist."
+        )
+
+    if (
+        category[
+            "transaction_type"
+        ]
+        != "expense"
+    ):
+        raise ValueError(
+            "Budgets can only be created "
+            "for expense categories."
+        )
+
+
+def create_finance_budget(
+    *,
+    category_id: int,
+    jalali_year: int,
+    jalali_month: int,
+    amount: int,
+    database_path: str | Path | None = None,
+) -> int:
+    (
+        jalali_year,
+        jalali_month,
+    ) = _validate_jalali_period(
+        jalali_year,
+        jalali_month,
+    )
+
+    amount = _validate_amount(
+        amount
+    )
+
+    with get_connection(
+        database_path
+    ) as connection:
+
+        _validate_expense_category(
+            connection,
+            category_id,
+        )
+
+        try:
+            cursor = connection.execute(
+                """
+                INSERT INTO finance_budgets (
+                    category_id,
+                    jalali_year,
+                    jalali_month,
+                    amount
+                )
+                VALUES (?, ?, ?, ?)
+                """,
+                (
+                    category_id,
+                    jalali_year,
+                    jalali_month,
+                    amount,
+                ),
+            )
+
+        except sqlite3.IntegrityError as error:
+            raise ValueError(
+                "A budget already exists "
+                "for this category and month."
+            ) from error
+
+        connection.commit()
+
+        return int(
+            cursor.lastrowid
+        )
+
+
+def get_finance_budget(
+    budget_id: int,
+    database_path: str | Path | None = None,
+):
+    with get_connection(
+        database_path
+    ) as connection:
+
+        return connection.execute(
+            """
+            SELECT
+                b.id,
+                b.category_id,
+                b.jalali_year,
+                b.jalali_month,
+                b.amount,
+                b.created_at,
+                c.name AS category_name
+            FROM finance_budgets AS b
+            JOIN finance_categories AS c
+                ON c.id = b.category_id
+            WHERE b.id = ?
+            """,
+            (
+                budget_id,
+            ),
+        ).fetchone()
+
+
+def get_finance_budgets_for_month(
+    jalali_year: int,
+    jalali_month: int,
+    database_path: str | Path | None = None,
+):
+    (
+        jalali_year,
+        jalali_month,
+    ) = _validate_jalali_period(
+        jalali_year,
+        jalali_month,
+    )
+
+    with get_connection(
+        database_path
+    ) as connection:
+
+        return connection.execute(
+            """
+            SELECT
+                b.id,
+                b.category_id,
+                b.jalali_year,
+                b.jalali_month,
+                b.amount,
+                b.created_at,
+                c.name AS category_name
+            FROM finance_budgets AS b
+            JOIN finance_categories AS c
+                ON c.id = b.category_id
+            WHERE
+                b.jalali_year = ?
+                AND b.jalali_month = ?
+            ORDER BY
+                c.name COLLATE NOCASE ASC
+            """,
+            (
+                jalali_year,
+                jalali_month,
+            ),
+        ).fetchall()
+
+
+def update_finance_budget(
+    *,
+    budget_id: int,
+    category_id: int,
+    jalali_year: int,
+    jalali_month: int,
+    amount: int,
+    database_path: str | Path | None = None,
+) -> None:
+    (
+        jalali_year,
+        jalali_month,
+    ) = _validate_jalali_period(
+        jalali_year,
+        jalali_month,
+    )
+
+    amount = _validate_amount(
+        amount
+    )
+
+    with get_connection(
+        database_path
+    ) as connection:
+
+        _validate_expense_category(
+            connection,
+            category_id,
+        )
+
+        try:
+            result = connection.execute(
+                """
+                UPDATE finance_budgets
+                SET
+                    category_id = ?,
+                    jalali_year = ?,
+                    jalali_month = ?,
+                    amount = ?
+                WHERE id = ?
+                """,
+                (
+                    category_id,
+                    jalali_year,
+                    jalali_month,
+                    amount,
+                    budget_id,
+                ),
+            )
+
+        except sqlite3.IntegrityError as error:
+            raise ValueError(
+                "A budget already exists "
+                "for this category and month."
+            ) from error
+
+        if result.rowcount == 0:
+            raise ValueError(
+                "Budget does not exist."
+            )
+
+        connection.commit()
+
+
+def delete_finance_budget(
+    budget_id: int,
+    database_path: str | Path | None = None,
+) -> None:
+    with get_connection(
+        database_path
+    ) as connection:
+
+        connection.execute(
+            """
+            DELETE FROM finance_budgets
+            WHERE id = ?
+            """,
+            (
+                budget_id,
+            ),
+        )
+
+        connection.commit()
+
+
+def get_finance_budget_statuses(
+    jalali_year: int,
+    jalali_month: int,
+    database_path: str | Path | None = None,
+) -> list[dict]:
+    (
+        jalali_year,
+        jalali_month,
+    ) = _validate_jalali_period(
+        jalali_year,
+        jalali_month,
+    )
+
+    month_dates = (
+        get_jalali_month_dates(
+            jalali_year,
+            jalali_month,
+        )
+    )
+
+    start_date = (
+        month_dates[0].isoformat()
+    )
+
+    end_date = (
+        month_dates[-1].isoformat()
+    )
+
+    budgets = (
+        get_finance_budgets_for_month(
+            jalali_year,
+            jalali_month,
+            database_path=database_path,
+        )
+    )
+
+    result = []
+
+    with get_connection(
+        database_path
+    ) as connection:
+
+        for budget in budgets:
+            row = connection.execute(
+                """
+                SELECT
+                    SUM(amount) AS spent
+                FROM finance_transactions
+                WHERE
+                    transaction_type = 'expense'
+                    AND category_id = ?
+                    AND transaction_date >= ?
+                    AND transaction_date <= ?
+                """,
+                (
+                    budget[
+                        "category_id"
+                    ],
+                    start_date,
+                    end_date,
+                ),
+            ).fetchone()
+
+            spent = int(
+                row["spent"] or 0
+            )
+
+            amount = int(
+                budget["amount"]
+            )
+
+            remaining = (
+                amount - spent
+            )
+
+            percentage = (
+                round(
+                    spent
+                    / amount
+                    * 100
+                )
+                if amount
+                else 0
+            )
+
+            result.append(
+                {
+                    "id": (
+                        budget["id"]
+                    ),
+                    "category_id": (
+                        budget[
+                            "category_id"
+                        ]
+                    ),
+                    "category_name": (
+                        budget[
+                            "category_name"
+                        ]
+                    ),
+                    "amount": amount,
+                    "spent": spent,
+                    "remaining": (
+                        remaining
+                    ),
+                    "percentage": (
+                        percentage
+                    ),
+                    "overspent": (
+                        spent > amount
+                    ),
+                }
+            )
+
+    return result
+
+
+def get_finance_budget_overview(
+    jalali_year: int,
+    jalali_month: int,
+    database_path: str | Path | None = None,
+) -> dict:
+    statuses = (
+        get_finance_budget_statuses(
+            jalali_year,
+            jalali_month,
+            database_path=database_path,
+        )
+    )
+
+    month_dates = (
+        get_jalali_month_dates(
+            jalali_year,
+            jalali_month,
+        )
+    )
+
+    summary = (
+        get_finance_summary_between(
+            month_dates[
+                0
+            ].isoformat(),
+            month_dates[
+                -1
+            ].isoformat(),
+            database_path=database_path,
+        )
+    )
+
+    total_budget = sum(
+        row["amount"]
+        for row in statuses
+    )
+
+    budgeted_spending = sum(
+        row["spent"]
+        for row in statuses
+    )
+
+    overspent_count = sum(
+        1
+        for row in statuses
+        if row["overspent"]
+    )
+
+    all_expense = (
+        summary["expense"]
+    )
+
+    unbudgeted_expense = max(
+        0,
+        all_expense
+        - budgeted_spending,
+    )
+
+    return {
+        "total_budget": (
+            total_budget
+        ),
+        "budgeted_spending": (
+            budgeted_spending
+        ),
+        "remaining": (
+            total_budget
+            - budgeted_spending
+        ),
+        "overspent_count": (
+            overspent_count
+        ),
+        "all_expense": (
+            all_expense
+        ),
+        "unbudgeted_expense": (
+            unbudgeted_expense
+        ),
+    }
+
+
+# =====================================
+# Money formatting
+# =====================================
 
 
 def format_money(

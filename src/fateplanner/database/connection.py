@@ -496,5 +496,63 @@ def initialize_database(
             )
             """
         )
+        # ==================================
+        # Monthly finance budgets
+        # ==================================
 
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS
+            finance_budgets (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+                category_id INTEGER NOT NULL,
+
+                jalali_year INTEGER NOT NULL,
+
+                jalali_month INTEGER NOT NULL
+                    CHECK (
+                        jalali_month >= 1
+                        AND jalali_month <= 12
+                    ),
+
+                amount INTEGER NOT NULL
+                    CHECK (amount > 0),
+
+                created_at TEXT NOT NULL
+                    DEFAULT CURRENT_TIMESTAMP,
+
+                FOREIGN KEY (category_id)
+                    REFERENCES finance_categories(id)
+                    ON DELETE CASCADE,
+
+                UNIQUE (
+                    category_id,
+                    jalali_year,
+                    jalali_month
+                )
+            )
+            """
+        )
+
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS
+            idx_finance_budgets_period
+            ON finance_budgets(
+                jalali_year,
+                jalali_month
+            )
+            """
+        )
+
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS
+            idx_finance_budgets_category
+            ON finance_budgets(
+                category_id
+            )
+            """
+        )
         connection.commit()
