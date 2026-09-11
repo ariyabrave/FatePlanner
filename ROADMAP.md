@@ -279,12 +279,23 @@
 - [x] Live synchronization with app data
 - [x] Tests
 
-## Milestone 10 — Backup / Restore
+## ✅ Milestone 10 — Backup / Restore / Export
 
-- [ ] Create backup
-- [ ] Restore backup
-- [ ] Automatic local backups
-- [ ] Export data
+- [x] SQLite-safe manual backups
+- [x] Automatic daily backup
+- [x] Automatic backup retention
+- [x] Backup integrity validation
+- [x] Required-schema validation
+- [x] Safe restore
+- [x] Automatic pre-restore backup
+- [x] Failed-restore rollback protection
+- [x] Corrupt backup rejection
+- [x] JSON data export
+- [x] CSV data export
+- [x] Export manifest
+- [x] Backup directory access
+- [x] Settings data-management page
+- [x] Tests
 
 ## Milestone 11 — UI Polish
 
