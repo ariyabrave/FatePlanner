@@ -43,6 +43,9 @@ from fateplanner.services.task_service import (
     set_task_completed,
     update_task,
 )
+from fateplanner.ui.analytics_page import (
+    AnalyticsPage,
+)
 from fateplanner.ui.finance_page import (
     FinancePage,
 )
@@ -158,6 +161,8 @@ class MainWindow(QMainWindow):
 
         self.finance_page = FinancePage()
 
+        self.analytics_page = AnalyticsPage()
+
         self.pages.addWidget(
             self.home_page
         )
@@ -186,8 +191,11 @@ class MainWindow(QMainWindow):
             self.finance_page
         )
 
+        self.pages.addWidget(
+            self.analytics_page
+        )
+
         remaining_pages = [
-            "گزارش‌ها و پیشرفت",
             "تنظیمات",
         ]
 
@@ -246,6 +254,9 @@ class MainWindow(QMainWindow):
 
         elif index == 6:
             self.finance_page.refresh()
+
+        elif index == 7:
+            self.analytics_page.refresh()
 
     # ==================================
     # Home

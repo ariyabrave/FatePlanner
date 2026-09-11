@@ -255,16 +255,29 @@
 - [x] Persistence
 - [x] Tests
 
-## Milestone 9 — Analytics
+## ✅ Milestone 9 — Global Analytics
 
-- [ ] Daily productivity
-- [ ] Weekly productivity
-- [ ] Task completion graph
-- [ ] Study-time graph
-- [ ] Habit graph
-- [ ] Income vs expenses
-- [ ] Spending categories
-- [ ] Savings graph
+- [x] Unified analytics service
+- [x] Global overview dashboard
+- [x] Weekly task analytics
+- [x] Overdue task warnings
+- [x] Weekly habit analytics
+- [x] Daily habit completion percentages
+- [x] Weekly study analytics
+- [x] Planned vs actual study time
+- [x] Productivity chart
+- [x] Metric switching
+- [x] Daily productivity table
+- [x] Persian week navigation
+- [x] Monthly finance analytics
+- [x] Income / expense / balance summary
+- [x] Budget health summary
+- [x] Overspending warnings
+- [x] Finance category breakdown
+- [x] Savings overview
+- [x] Jalali month navigation
+- [x] Live synchronization with app data
+- [x] Tests
 
 ## Milestone 10 — Backup / Restore
 
