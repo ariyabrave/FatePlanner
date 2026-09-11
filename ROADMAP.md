@@ -120,59 +120,55 @@
 - [x] Persistent history
 - [x] Final habit tests
 
-## ⏳ Milestone 6 — Study Planner + Focus Timer
+## ✅ Milestone 6 — Study Planner + Focus Timer
 
 ### ✅ 6A — Study Planner Foundation
 
 - [x] Study subjects database
-- [x] Create study subjects
-- [x] Edit study subjects
-- [x] Delete study subjects
+- [x] Create/edit/delete subjects
 - [x] Study session database
-- [x] Create planned study sessions
+- [x] Planned study sessions
 - [x] Jalali study session dates
-- [x] Planned study duration
-- [x] Study session notes
-- [x] Edit study sessions
-- [x] Delete study sessions
-- [x] Complete study sessions
+- [x] Planned duration
+- [x] Notes
+- [x] Session completion
 - [x] Today's study progress
-- [x] Daily planned time
 - [x] Actual study time storage
-- [x] Subject/session persistence
+- [x] Persistence
 - [x] Tests
 
 ### ✅ 6B — Focus / Pomodoro Timer
 
-- [x] Select study session
-- [x] 25 / 5 Pomodoro preset
-- [x] 50 / 10 deep-focus preset
-- [x] Custom focus duration
-- [x] Start timer
-- [x] Pause timer
-- [x] Resume timer
-- [x] Reset timer
-- [x] Focus/break phases
-- [x] Manual phase switching
-- [x] Record actual study seconds
-- [x] Automatically update session
-- [x] Automatic session completion
-- [x] Manual session completion
+- [x] Study session selection
+- [x] 25 / 5 Pomodoro
+- [x] 50 / 10 Deep Focus
+- [x] Custom durations
+- [x] Start / pause / resume / reset
+- [x] Focus and break phases
 - [x] Pomodoro counter
-- [x] Timer state persistence
-- [x] Safe shutdown behavior
+- [x] Actual-time tracking
+- [x] Automatic session completion
+- [x] Manual completion
+- [x] Timer persistence
+- [x] Safe shutdown
+- [x] Study tab layout
+- [x] Maximized application startup
 - [x] Tests
 
-### ⏳ 6C — Study History + Analytics
+### ✅ 6C — Study History + Analytics
 
-- [ ] Study history
-- [ ] Daily study totals
-- [ ] Weekly study totals
-- [ ] Subject totals
-- [ ] Planned vs actual
-- [ ] Jalali date navigation
-- [ ] Study charts
-- [ ] Final study tests
+- [x] Persian week navigation
+- [x] Study history
+- [x] Daily study totals
+- [x] Weekly study totals
+- [x] Subject totals
+- [x] Planned vs actual comparison
+- [x] Session completion statistics
+- [x] Weekly study chart
+- [x] Subject analytics table
+- [x] Session history table
+- [x] Live timer/analytics synchronization
+- [x] Final study tests
 
 ## Milestone 7 — Finance
 

@@ -33,6 +33,9 @@ from fateplanner.services.study_service import (
 from fateplanner.ui.focus_timer_widget import (
     FocusTimerWidget,
 )
+from fateplanner.ui.study_analytics_widget import (
+    StudyAnalyticsWidget,
+)
 from fateplanner.ui.study_session_dialog import (
     StudySessionDialog,
 )
@@ -136,6 +139,10 @@ class StudyPage(QWidget):
             "تاریخچه و آمار",
         )
 
+        self.tabs.currentChanged.connect(
+            self.on_tab_changed
+        )
+
         self.main_layout.addWidget(
             self.tabs,
             1,
@@ -155,10 +162,6 @@ class StudyPage(QWidget):
         outer_layout = QVBoxLayout(
             tab
         )
-
-        # ----------------------------------
-        # Daily study stats
-        # ----------------------------------
 
         stats_frame = QFrame()
 
@@ -187,9 +190,7 @@ class StudyPage(QWidget):
             """
         )
 
-        self.progress_bar = (
-            QProgressBar()
-        )
+        self.progress_bar = QProgressBar()
 
         self.progress_bar.setRange(
             0,
@@ -219,10 +220,6 @@ class StudyPage(QWidget):
         outer_layout.addWidget(
             stats_frame
         )
-
-        # ----------------------------------
-        # Add buttons
-        # ----------------------------------
 
         button_layout = QHBoxLayout()
 
@@ -262,13 +259,12 @@ class StudyPage(QWidget):
             button_layout
         )
 
-        # ----------------------------------
-        # Main planner content
-        # ----------------------------------
-
         content_layout = QHBoxLayout()
 
-        # Subjects column
+        # ----------------------------------
+        # Subjects
+        # ----------------------------------
+
         subjects_frame = QFrame()
 
         subjects_frame.setStyleSheet(
@@ -280,7 +276,7 @@ class StudyPage(QWidget):
             """
         )
 
-        subjects_layout = QVBoxLayout(
+        subjects_frame_layout = QVBoxLayout(
             subjects_frame
         )
 
@@ -295,7 +291,7 @@ class StudyPage(QWidget):
             """
         )
 
-        subjects_layout.addWidget(
+        subjects_frame_layout.addWidget(
             subjects_title
         )
 
@@ -319,12 +315,15 @@ class StudyPage(QWidget):
             self.subjects_container
         )
 
-        subjects_layout.addWidget(
+        subjects_frame_layout.addWidget(
             subjects_scroll,
             1,
         )
 
-        # Sessions column
+        # ----------------------------------
+        # Sessions
+        # ----------------------------------
+
         sessions_frame = QFrame()
 
         sessions_frame.setStyleSheet(
@@ -336,7 +335,7 @@ class StudyPage(QWidget):
             """
         )
 
-        sessions_layout = QVBoxLayout(
+        sessions_frame_layout = QVBoxLayout(
             sessions_frame
         )
 
@@ -351,7 +350,7 @@ class StudyPage(QWidget):
             """
         )
 
-        sessions_layout.addWidget(
+        sessions_frame_layout.addWidget(
             sessions_title
         )
 
@@ -375,7 +374,7 @@ class StudyPage(QWidget):
             self.sessions_container
         )
 
-        sessions_layout.addWidget(
+        sessions_frame_layout.addWidget(
             sessions_scroll,
             1,
         )
@@ -432,56 +431,27 @@ class StudyPage(QWidget):
     def create_analytics_tab(
         self,
     ) -> QWidget:
-        tab = QWidget()
-
-        layout = QVBoxLayout(
-            tab
+        self.analytics_widget = (
+            StudyAnalyticsWidget(
+                self
+            )
         )
 
-        title = QLabel(
-            "تاریخچه و آمار مطالعه"
-        )
+        return self.analytics_widget
 
-        title.setStyleSheet(
-            """
-            font-size: 22px;
-            font-weight: bold;
-            """
-        )
-
-        message = QLabel(
-            "این بخش در Milestone 6C ساخته می‌شود.\n\n"
-            "در این قسمت تاریخچه مطالعه، مجموع زمان روزانه و هفتگی، "
-            "آمار هر موضوع و مقایسه زمان برنامه‌ریزی‌شده با زمان واقعی "
-            "نمایش داده خواهد شد."
-        )
-
-        message.setWordWrap(
-            True
-        )
-
-        message.setAlignment(
-            Qt.AlignmentFlag.AlignCenter
-        )
-
-        message.setStyleSheet(
-            """
-            font-size: 16px;
-            padding: 40px;
-            color: #666;
-            """
-        )
-
-        layout.addWidget(
-            title
-        )
-
-        layout.addWidget(
-            message,
-            1,
-        )
-
-        return tab
+    def on_tab_changed(
+        self,
+        index: int,
+    ):
+        if (
+            hasattr(
+                self,
+                "analytics_widget",
+            )
+            and self.tabs.widget(index)
+            is self.analytics_widget
+        ):
+            self.analytics_widget.refresh()
 
     # ==================================
     # Refresh
@@ -518,6 +488,12 @@ class StudyPage(QWidget):
         ):
             self.focus_timer.refresh_sessions()
 
+        if hasattr(
+            self,
+            "analytics_widget",
+        ):
+            self.analytics_widget.refresh()
+
     def refresh_after_timer_change(
         self,
     ):
@@ -532,6 +508,12 @@ class StudyPage(QWidget):
         self.refresh_stats(
             today_iso
         )
+
+        if hasattr(
+            self,
+            "analytics_widget",
+        ):
+            self.analytics_widget.refresh()
 
     # ==================================
     # Subjects
