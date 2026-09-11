@@ -555,4 +555,80 @@ def initialize_database(
             )
             """
         )
+        # ==================================
+        # Savings goals
+        # ==================================
+
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS
+            savings_goals (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+                title TEXT NOT NULL,
+
+                description TEXT,
+
+                target_amount INTEGER NOT NULL
+                    CHECK (target_amount > 0),
+
+                target_date TEXT,
+
+                created_at TEXT NOT NULL
+                    DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+
+        # ==================================
+        # Savings goal history
+        # ==================================
+
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS
+            savings_entries (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+                goal_id INTEGER NOT NULL,
+
+                entry_type TEXT NOT NULL
+                    CHECK (
+                        entry_type
+                        IN ('deposit', 'withdrawal')
+                    ),
+
+                amount INTEGER NOT NULL
+                    CHECK (amount > 0),
+
+                entry_date TEXT NOT NULL,
+
+                note TEXT,
+
+                created_at TEXT NOT NULL
+                    DEFAULT CURRENT_TIMESTAMP,
+
+                FOREIGN KEY (goal_id)
+                    REFERENCES savings_goals(id)
+                    ON DELETE CASCADE
+            )
+            """
+        )
+
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS
+            idx_savings_entries_goal
+            ON savings_entries(goal_id)
+            """
+        )
+
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS
+            idx_savings_entries_date
+            ON savings_entries(entry_date)
+            """
+        )
+
         connection.commit()

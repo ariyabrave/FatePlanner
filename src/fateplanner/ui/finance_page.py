@@ -47,6 +47,9 @@ from fateplanner.ui.finance_category_dialog import (
 from fateplanner.ui.finance_transaction_dialog import (
     FinanceTransactionDialog,
 )
+from fateplanner.ui.savings_goals_widget import (
+    SavingsGoalsWidget,
+)
 from fateplanner.utils.date_utils import (
     format_jalali_date,
     format_jalali_month_title,
@@ -188,6 +191,12 @@ class FinancePage(QWidget):
             self.create_budgets_tab()
         )
 
+        self.savings_tab = (
+            SavingsGoalsWidget(
+                self
+            )
+        )
+
         self.tabs.addTab(
             self.ledger_tab,
             "تراکنش‌ها",
@@ -201,6 +210,11 @@ class FinancePage(QWidget):
         self.tabs.addTab(
             self.budgets_tab,
             "بودجه‌ها",
+        )
+
+        self.tabs.addTab(
+            self.savings_tab,
+            "اهداف پس‌انداز",
         )
 
         self.tabs.currentChanged.connect(
@@ -642,6 +656,12 @@ class FinancePage(QWidget):
         self.refresh_categories()
 
         self.refresh_budgets()
+
+        if hasattr(
+            self,
+            "savings_tab",
+        ):
+            self.savings_tab.refresh()
 
     def refresh_summary(
         self,
@@ -1635,6 +1655,12 @@ class FinancePage(QWidget):
             is self.budgets_tab
         ):
             self.refresh_budgets()
+
+        elif (
+            self.tabs.widget(index)
+            is self.savings_tab
+        ):
+            self.savings_tab.refresh()
 
     # ==================================
     # Helpers
