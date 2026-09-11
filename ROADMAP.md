@@ -66,15 +66,30 @@
 
 ### ⏳ 4B — Recurring Tasks
 
-- [ ] Daily recurrence
-- [ ] Weekly recurrence
-- [ ] Selected weekdays
-- [ ] Recurrence start date
-- [ ] Recurrence end date
-- [ ] Automatic recurring instances
-- [ ] Recurring task editing
-- [ ] Recurring task deletion
-- [ ] Tests
+#### ✅ Recurrence Engine
+
+- [x] Recurring series database model
+- [x] Daily recurrence
+- [x] Weekly recurrence
+- [x] Selected weekdays
+- [x] Recurrence start date
+- [x] Recurrence end date
+- [x] Automatic occurrence generation
+- [x] Duplicate prevention
+- [x] Series update engine
+- [x] Series deletion engine
+- [x] Tests
+
+#### ⏳ Recurrence UI
+
+- [ ] Persian recurrence selector
+- [ ] Selected weekday controls
+- [ ] Recurrence end-date selector
+- [ ] Create recurring tasks
+- [ ] Edit recurring series
+- [ ] Delete recurring series
+- [ ] Daily planner integration
+- [ ] Weekly planner integration
 
 ## Milestone 5 — Habits
 

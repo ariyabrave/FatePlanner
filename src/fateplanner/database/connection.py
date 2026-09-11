@@ -38,7 +38,6 @@ def get_connection(
 
     connection.row_factory = sqlite3.Row
 
-    # Required for ON DELETE CASCADE.
     connection.execute(
         "PRAGMA foreign_keys = ON"
     )
@@ -65,9 +64,31 @@ def initialize_database(
                 all_day INTEGER NOT NULL DEFAULT 0,
                 priority TEXT NOT NULL DEFAULT 'normal',
                 completed INTEGER NOT NULL DEFAULT 0,
+
                 parent_id INTEGER,
-                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+                is_recurring_template
+                    INTEGER NOT NULL DEFAULT 0,
+
+                recurrence_type
+                    TEXT NOT NULL DEFAULT 'none',
+
+                recurrence_weekdays TEXT,
+
+                recurrence_start_date TEXT,
+
+                recurrence_end_date TEXT,
+
+                recurring_template_id INTEGER,
+
+                created_at TEXT NOT NULL
+                    DEFAULT CURRENT_TIMESTAMP,
+
                 FOREIGN KEY (parent_id)
+                    REFERENCES tasks(id)
+                    ON DELETE CASCADE,
+
+                FOREIGN KEY (recurring_template_id)
                     REFERENCES tasks(id)
                     ON DELETE CASCADE
             )
@@ -81,40 +102,78 @@ def initialize_database(
             ).fetchall()
         }
 
-        if "start_time" not in columns:
-            connection.execute(
+        migrations = {
+            "start_time":
                 """
                 ALTER TABLE tasks
                 ADD COLUMN start_time TEXT
-                """
-            )
+                """,
 
-        if "end_time" not in columns:
-            connection.execute(
+            "end_time":
                 """
                 ALTER TABLE tasks
                 ADD COLUMN end_time TEXT
-                """
-            )
+                """,
 
-        if "all_day" not in columns:
-            connection.execute(
+            "all_day":
                 """
                 ALTER TABLE tasks
-                ADD COLUMN all_day INTEGER
-                NOT NULL DEFAULT 0
-                """
-            )
+                ADD COLUMN all_day
+                INTEGER NOT NULL DEFAULT 0
+                """,
 
-        if "parent_id" not in columns:
-            connection.execute(
+            "parent_id":
                 """
                 ALTER TABLE tasks
                 ADD COLUMN parent_id INTEGER
                 REFERENCES tasks(id)
                 ON DELETE CASCADE
+                """,
+
+            "is_recurring_template":
                 """
-            )
+                ALTER TABLE tasks
+                ADD COLUMN is_recurring_template
+                INTEGER NOT NULL DEFAULT 0
+                """,
+
+            "recurrence_type":
+                """
+                ALTER TABLE tasks
+                ADD COLUMN recurrence_type
+                TEXT NOT NULL DEFAULT 'none'
+                """,
+
+            "recurrence_weekdays":
+                """
+                ALTER TABLE tasks
+                ADD COLUMN recurrence_weekdays TEXT
+                """,
+
+            "recurrence_start_date":
+                """
+                ALTER TABLE tasks
+                ADD COLUMN recurrence_start_date TEXT
+                """,
+
+            "recurrence_end_date":
+                """
+                ALTER TABLE tasks
+                ADD COLUMN recurrence_end_date TEXT
+                """,
+
+            "recurring_template_id":
+                """
+                ALTER TABLE tasks
+                ADD COLUMN recurring_template_id INTEGER
+                REFERENCES tasks(id)
+                ON DELETE CASCADE
+                """,
+        }
+
+        for column, sql in migrations.items():
+            if column not in columns:
+                connection.execute(sql)
 
         connection.execute(
             """
@@ -129,6 +188,35 @@ def initialize_database(
             CREATE INDEX IF NOT EXISTS
             idx_tasks_due_date
             ON tasks(due_date)
+            """
+        )
+
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS
+            idx_tasks_recurring_template_id
+            ON tasks(recurring_template_id)
+            """
+        )
+
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS
+            idx_tasks_recurring_templates
+            ON tasks(is_recurring_template)
+            """
+        )
+
+        connection.execute(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS
+            idx_unique_recurring_occurrence
+            ON tasks(
+                recurring_template_id,
+                due_date
+            )
+            WHERE recurring_template_id
+                IS NOT NULL
             """
         )
 
