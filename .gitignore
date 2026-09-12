@@ -37,3 +37,6 @@ packaging/windows/FatePlanner.ico
 
 # Track FatePlanner's official PyInstaller configuration
 !packaging/windows/FatePlanner.spec
+
+# Track FatePlanner's official Linux PyInstaller configuration
+!packaging/linux/FatePlanner.spec

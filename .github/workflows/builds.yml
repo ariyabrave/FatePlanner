@@ -1,0 +1,131 @@
+name: FatePlanner Builds
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    name: Linux x86_64
+
+    runs-on: ubuntu-latest
+
+    env:
+      QT_QPA_PLATFORM: offscreen
+      PYTHONUTF8: "1"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Linux Qt dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libegl1 \
+            libgl1 \
+            libxkbcommon-x11-0
+
+      - name: Upgrade packaging tools
+        run: >
+          python -m pip install
+          --upgrade
+          pip setuptools wheel
+
+      - name: Install FatePlanner
+        run: >
+          python -m pip install
+          -e ".[dev,build]"
+
+      - name: Run tests
+        run: python -m pytest -v
+
+      - name: Build FatePlanner
+        run: |
+          python -m PyInstaller \
+            --clean \
+            --noconfirm \
+            packaging/linux/FatePlanner.spec
+
+      - name: Create Linux archive
+        run: |
+          cd dist
+          tar \
+            -czf \
+            FatePlanner-Linux-x86_64.tar.gz \
+            FatePlanner
+
+      - name: Upload Linux build
+        uses: actions/upload-artifact@v4
+        with:
+          name: FatePlanner-Linux-x86_64
+          path: dist/FatePlanner-Linux-x86_64.tar.gz
+          if-no-files-found: error
+
+
+  windows:
+    name: Windows x86_64
+
+    runs-on: windows-latest
+
+    env:
+      PYTHONUTF8: "1"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Upgrade packaging tools
+        run: >
+          python -m pip install
+          --upgrade
+          pip setuptools wheel
+
+      - name: Install FatePlanner
+        run: >
+          python -m pip install
+          -e ".[dev,build]"
+
+      - name: Generate Windows icon
+        run: >
+          python
+          packaging/windows/make_icon.py
+
+      - name: Run tests
+        run: python -m pytest -v
+
+      - name: Build FatePlanner
+        run: >
+          python -m PyInstaller
+          --clean
+          --noconfirm
+          packaging/windows/FatePlanner.spec
+
+      - name: Create portable ZIP
+        shell: pwsh
+        run: |
+          Compress-Archive `
+            -Path "dist\FatePlanner\*" `
+            -DestinationPath `
+              "dist\FatePlanner-Windows-Portable.zip"
+
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: FatePlanner-Windows-Portable
+          path: dist/FatePlanner-Windows-Portable.zip
+          if-no-files-found: error
