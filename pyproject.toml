@@ -2,16 +2,19 @@
 requires = ["setuptools>=69"]
 build-backend = "setuptools.build_meta"
 
+
 [project]
 name = "FatePlanner"
 version = "0.1.0"
 description = "An offline Persian productivity, study, habit and finance planner."
 requires-python = ">=3.11"
+license = "GPL-3.0-only"
 
 dependencies = [
     "PySide6",
     "jdatetime>=6.1,<7",
 ]
+
 
 [project.optional-dependencies]
 dev = [
@@ -23,11 +26,22 @@ build = [
     "Pillow>=10,<12",
 ]
 
+
 [project.scripts]
 fateplanner = "fateplanner.main:main"
 
+
 [tool.setuptools.packages.find]
 where = ["src"]
+
+
+[tool.setuptools.package-data]
+fateplanner = [
+    "ui/assets/*.svg",
+    "ui/assets/*.png",
+    "ui/assets/*.ico",
+]
+
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

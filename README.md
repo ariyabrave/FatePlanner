@@ -279,7 +279,13 @@ Bug reports and suggestions can be submitted through GitHub Issues.
 
 ## License
 
-A project license will be selected before the first public release.
+FatePlanner is free and open-source software licensed under the
+GNU General Public License v3.0.
+
+You are free to use, study, modify, and redistribute FatePlanner
+under the terms of the GPLv3.
+
+See [LICENSE](LICENSE) for the full license text.
 
 ---
 
