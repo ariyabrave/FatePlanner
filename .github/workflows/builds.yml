@@ -63,7 +63,7 @@ jobs:
             FatePlanner
 
       - name: Upload Linux build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: FatePlanner-Linux-x86_64
           path: dist/FatePlanner-Linux-x86_64.tar.gz
@@ -163,14 +163,14 @@ jobs:
             Format-List Name, Length, FullName
 
       - name: Upload Windows portable build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: FatePlanner-Windows-Portable
           path: dist/FatePlanner-Windows-Portable.zip
           if-no-files-found: error
 
       - name: Upload Windows installer
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: FatePlanner-Windows-Setup
           path: dist/installer/FatePlanner-Windows-Setup-v0.1.0.exe

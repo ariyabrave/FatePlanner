@@ -1,15 +1,67 @@
-VSVersionInfo(
+import re
+import sys
+
+from pathlib import Path
+
+
+OUTPUT = (
+    Path(__file__)
+    .resolve()
+    .parent
+    / "version_info.txt"
+)
+
+
+def normalize_version(
+    value: str,
+) -> str:
+    version = (
+        value.strip()
+        .removeprefix("v")
+    )
+
+    if not re.fullmatch(
+        r"\d+\.\d+\.\d+",
+        version,
+    ):
+        raise ValueError(
+            "Version must use X.Y.Z format, "
+            "for example 0.1.0."
+        )
+
+    return version
+
+
+def main() -> None:
+    if len(sys.argv) != 2:
+        raise SystemExit(
+            "Usage: "
+            "python make_version_info.py "
+            "0.1.0"
+        )
+
+    version = normalize_version(
+        sys.argv[1]
+    )
+
+    major, minor, patch = (
+        int(part)
+        for part
+        in version.split(".")
+    )
+
+    content = f'''VSVersionInfo(
     ffi=FixedFileInfo(
         filevers=(
-            0,
-            1,
-            0,
+            {major},
+            {minor},
+            {patch},
             0,
         ),
         prodvers=(
-            0,
-            1,
-            0,
+            {major},
+            {minor},
+            {patch},
             0,
         ),
         mask=0x3F,
@@ -35,7 +87,7 @@ VSVersionInfo(
                         ),
                         StringStruct(
                             "FileVersion",
-                            "0.1.0",
+                            "{version}",
                         ),
                         StringStruct(
                             "InternalName",
@@ -51,7 +103,7 @@ VSVersionInfo(
                         ),
                         StringStruct(
                             "ProductVersion",
-                            "0.1.0",
+                            "{version}",
                         ),
                     ],
                 ),
@@ -67,3 +119,18 @@ VSVersionInfo(
         ),
     ],
 )
+'''
+
+    OUTPUT.write_text(
+        content,
+        encoding="utf-8",
+    )
+
+    print(
+        f"Created Windows version info "
+        f"for FatePlanner {version}"
+    )
+
+
+if __name__ == "__main__":
+    main()

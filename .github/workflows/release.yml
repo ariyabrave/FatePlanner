@@ -1,0 +1,322 @@
+name: FatePlanner Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+
+jobs:
+
+  linux:
+    name: Build Linux release
+
+    runs-on: ubuntu-latest
+
+    env:
+      QT_QPA_PLATFORM: offscreen
+      PYTHONUTF8: "1"
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+
+      - name: Install Linux Qt dependencies
+        run: |
+          sudo apt-get update
+
+          sudo apt-get install -y \
+            libegl1 \
+            libgl1 \
+            libxkbcommon-x11-0
+
+
+      - name: Upgrade packaging tools
+        run: >
+          python -m pip install
+          --upgrade
+          pip setuptools wheel
+
+
+      - name: Install FatePlanner
+        run: >
+          python -m pip install
+          -e ".[dev,build]"
+
+
+      - name: Run tests
+        run: >
+          python -m pytest -v
+
+
+      - name: Build FatePlanner
+        run: |
+          python -m PyInstaller \
+            --clean \
+            --noconfirm \
+            packaging/linux/FatePlanner.spec
+
+
+      - name: Create Linux release archive
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+
+          cd dist
+
+          tar \
+            -czf \
+            "FatePlanner-Linux-x86_64-v${VERSION}.tar.gz" \
+            FatePlanner
+
+
+      - name: Upload Linux release
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-linux
+          path: dist/FatePlanner-Linux-x86_64-v*.tar.gz
+          if-no-files-found: error
+
+
+
+  windows:
+    name: Build Windows release
+
+    runs-on: windows-latest
+
+    env:
+      PYTHONUTF8: "1"
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+
+      - name: Upgrade packaging tools
+        run: >
+          python -m pip install
+          --upgrade
+          pip setuptools wheel
+
+
+      - name: Install FatePlanner
+        run: >
+          python -m pip install
+          -e ".[dev,build]"
+
+
+      - name: Read release version
+        shell: pwsh
+        run: |
+          $Version = $env:GITHUB_REF_NAME.TrimStart("v")
+
+          if (
+            $Version -notmatch '^\d+\.\d+\.\d+$'
+          ) {
+            throw "Release tag must use vX.Y.Z format."
+          }
+
+          "FATEPLANNER_VERSION=$Version" |
+            Out-File `
+              -FilePath $env:GITHUB_ENV `
+              -Encoding utf8 `
+              -Append
+
+          Write-Host "Release version: $Version"
+
+
+      - name: Generate Windows icon
+        run: >
+          python
+          packaging/windows/make_icon.py
+
+
+      - name: Generate Windows version metadata
+        shell: pwsh
+        run: |
+          python `
+            packaging/windows/make_version_info.py `
+            $env:FATEPLANNER_VERSION
+
+
+      - name: Run tests
+        run: >
+          python -m pytest -v
+
+
+      - name: Build FatePlanner
+        run: >
+          python -m PyInstaller
+          --clean
+          --noconfirm
+          packaging/windows/FatePlanner.spec
+
+
+      - name: Create Windows portable ZIP
+        shell: pwsh
+        run: |
+          $Destination = (
+            "dist\FatePlanner-Windows-Portable-v" +
+            $env:FATEPLANNER_VERSION +
+            ".zip"
+          )
+
+          Compress-Archive `
+            -Path "dist\FatePlanner\*" `
+            -DestinationPath $Destination
+
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          choco install innosetup `
+            --yes `
+            --no-progress
+
+
+      - name: Build Windows installer
+        shell: pwsh
+        run: |
+          $iscc = (
+            "${env:ProgramFiles(x86)}" +
+            "\Inno Setup 6\ISCC.exe"
+          )
+
+          if (-not (Test-Path $iscc)) {
+            $iscc = (
+              "$env:ProgramFiles" +
+              "\Inno Setup 6\ISCC.exe"
+            )
+          }
+
+          if (-not (Test-Path $iscc)) {
+            throw "Inno Setup compiler was not found."
+          }
+
+          & $iscc `
+            "/DMyAppVersion=$env:FATEPLANNER_VERSION" `
+            "packaging\windows\FatePlanner.iss"
+
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
+
+
+      - name: Verify Windows release files
+        shell: pwsh
+        run: |
+          $Portable = (
+            "dist\FatePlanner-Windows-Portable-v" +
+            $env:FATEPLANNER_VERSION +
+            ".zip"
+          )
+
+          $Installer = (
+            "dist\installer\" +
+            "FatePlanner-Windows-Setup-v" +
+            $env:FATEPLANNER_VERSION +
+            ".exe"
+          )
+
+          if (-not (Test-Path $Portable)) {
+            throw "Portable ZIP was not created."
+          }
+
+          if (-not (Test-Path $Installer)) {
+            throw "Installer was not created."
+          }
+
+          Get-Item `
+            $Portable, `
+            $Installer |
+            Format-Table `
+              Name, `
+              Length
+
+
+      - name: Upload Windows release
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-windows
+          path: |
+            dist/FatePlanner-Windows-Portable-v*.zip
+            dist/installer/FatePlanner-Windows-Setup-v*.exe
+          if-no-files-found: error
+
+
+
+  release:
+    name: Publish GitHub Release
+
+    needs:
+      - linux
+      - windows
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Download Linux release
+        uses: actions/download-artifact@v5
+        with:
+          name: release-linux
+          path: release-assets
+
+
+      - name: Download Windows release
+        uses: actions/download-artifact@v5
+        with:
+          name: release-windows
+          path: release-assets
+
+
+      - name: Show release files
+        run: |
+          ls -lah release-assets
+
+
+      - name: Generate SHA256 checksums
+        shell: bash
+        run: |
+          cd release-assets
+
+          sha256sum \
+            FatePlanner-* \
+            > SHA256SUMS.txt
+
+          echo
+          echo "Checksums:"
+          cat SHA256SUMS.txt
+
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+        run: |
+          gh release create \
+            "$GITHUB_REF_NAME" \
+            release-assets/* \
+            --verify-tag \
+            --title "FatePlanner $GITHUB_REF_NAME" \
+            --generate-notes
