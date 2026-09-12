@@ -45,6 +45,15 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
 
+      - name: Install Linux Qt dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libegl1 \
+            libgl1 \
+            libxkbcommon-x11-0
+
       - name: Upgrade packaging tools
         run: python -m pip install --upgrade pip setuptools wheel
 
