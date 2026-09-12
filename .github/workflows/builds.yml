@@ -9,7 +9,6 @@ permissions:
 jobs:
   linux:
     name: Linux x86_64
-
     runs-on: ubuntu-latest
 
     env:
@@ -73,7 +72,6 @@ jobs:
 
   windows:
     name: Windows x86_64
-
     runs-on: windows-latest
 
     env:
@@ -102,8 +100,7 @@ jobs:
 
       - name: Generate Windows icon
         run: >
-          python
-          packaging/windows/make_icon.py
+          python packaging/windows/make_icon.py
 
       - name: Run tests
         run: python -m pytest -v
@@ -120,12 +117,61 @@ jobs:
         run: |
           Compress-Archive `
             -Path "dist\FatePlanner\*" `
-            -DestinationPath `
-              "dist\FatePlanner-Windows-Portable.zip"
+            -DestinationPath "dist\FatePlanner-Windows-Portable.zip"
 
-      - name: Upload Windows build
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          choco install innosetup `
+            --yes `
+            --no-progress
+
+      - name: Build Windows installer
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+
+          if (-not (Test-Path $iscc)) {
+            $iscc = "$env:ProgramFiles\Inno Setup 6\ISCC.exe"
+          }
+
+          if (-not (Test-Path $iscc)) {
+            throw "Inno Setup compiler was not found."
+          }
+
+          Write-Host "Using Inno Setup:"
+          Write-Host $iscc
+
+          & $iscc `
+            "packaging\windows\FatePlanner.iss"
+
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
+
+      - name: Verify Windows installer
+        shell: pwsh
+        run: |
+          $installer = `
+            "dist\installer\FatePlanner-Windows-Setup-v0.1.0.exe"
+
+          if (-not (Test-Path $installer)) {
+            throw "Windows installer was not created."
+          }
+
+          Get-Item $installer |
+            Format-List Name, Length, FullName
+
+      - name: Upload Windows portable build
         uses: actions/upload-artifact@v4
         with:
           name: FatePlanner-Windows-Portable
           path: dist/FatePlanner-Windows-Portable.zip
+          if-no-files-found: error
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: FatePlanner-Windows-Setup
+          path: dist/installer/FatePlanner-Windows-Setup-v0.1.0.exe
           if-no-files-found: error
